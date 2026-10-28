@@ -411,3 +411,8 @@ textarea { resize: vertical; }
   .topbar, .banner, .tree-bar, .zoom, .legend, .drawer, .scrim, .nav { display: none !important; }
 }
 .drawer:not(.open) { visibility: hidden; transition: transform var(--t) cubic-bezier(.2, .8, .2, 1), visibility 0s linear var(--t); }
+.app-card { margin-top: 24px; }
+.app-card-h { display: flex; gap: 14px; align-items: flex-start; }
+.app-card-h img { border-radius: 12px; flex: none; }
+.app-card-h h2 { margin-bottom: 4px; }
+.app-card .actions { align-items: center; }
