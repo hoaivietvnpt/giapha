@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gia Phả Dòng Họ</title>
+  <meta name="description" content="Gia phả điện tử của dòng họ: cây phả hệ, thông tin thành viên, ngày giỗ âm lịch, phần mộ.">
+  <meta name="theme-color" content="#7a1c1c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237a1c1c'/%3E%3Cpath d='M32 12v40M32 26l-12 10M32 26l12 10M32 38l-8 8M32 38l8 8' stroke='%23e8c26a' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M32 10v44M32 24l-13 11M32 24l13 11M32 38l-9 9M32 38l9 9" stroke="currentColor" stroke-width="5" stroke-linecap="round" fill="none"/></svg>
+      </span>
+      <span>
+        <span class="brand-title" id="brandTitle">Gia Phả</span>
+        <span class="brand-sub" id="brandSub">Dòng họ</span>
+      </span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#/" data-page="home">Trang chủ</a>
+      <a href="#/tree" data-page="tree">Cây gia phả</a>
+      <a href="#/list" data-page="list">Thành viên</a>
+      <a href="#/gio" data-page="gio">Ngày giỗ</a>
+      <a href="#/admin" data-page="admin" class="hidden" id="navAdmin">Quản trị</a>
+    </nav>
+    <div class="auth" id="auth"></div>
+  </header>
+
+  <div class="banner hidden" id="demoBanner">
+    <b>Chế độ dùng thử</b> – dữ liệu chỉ lưu trên trình duyệt này.<span class="long"> Điền cấu hình Firebase trong <code>js/firebase-config.js</code> để cả họ cùng dùng chung.</span>
+    <button type="button" id="bannerX" aria-label="Ẩn">×</button>
+  </div>
+
+  <main id="view" class="view"><div class="loading">Đang tải gia phả…</div></main>
+
+  <!-- Bảng chi tiết thành viên -->
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-inner" id="drawerBody"></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- Hộp thoại -->
+  <dialog id="modal" class="modal"><div id="modalBody"></div></dialog>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

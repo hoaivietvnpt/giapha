@@ -1,0 +1,36 @@
+rules_version = '2';
+// Quy tắc bảo mật Firestore cho Gia Phả
+// Dán toàn bộ nội dung này vào Firebase Console → Firestore Database → Rules → Publish
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function em() { return request.auth.token.email.lower(); }
+    function accRef() { return /databases/$(database)/documents/meta/access; }
+    function hasAcc() { return exists(accRef()); }
+    function acc() { return get(accRef()).data; }
+    function isOwner() { return signedIn() && hasAcc() && em() in acc().owners; }
+    function isEditor() { return isOwner() || (signedIn() && hasAcc() && em() in acc().editors); }
+    function isMember() { return isEditor() || (signedIn() && hasAcc() && em() in acc().members); }
+
+    // Thông tin thành viên: ai cũng xem được, chỉ biên tập viên được sửa
+    match /persons/{id} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+    // Liên hệ (SĐT, MXH, địa chỉ): chỉ thành viên được cấp quyền mới xem
+    match /contacts/{id} {
+      allow read: if isMember();
+      allow write: if isEditor();
+    }
+    match /meta/clan {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+    // Phân quyền: người đầu tiên đăng nhập tự trở thành quản trị
+    match /meta/access {
+      allow read: if signedIn();
+      allow create: if signedIn() && !hasAcc() && request.resource.data.owners == [em()];
+      allow update, delete: if isOwner();
+    }
+  }
+}
