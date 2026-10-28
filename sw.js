@@ -1,8 +1,8 @@
 // Service worker: chạy ngoại tuyến + nhắc ngày giỗ
-const VERSION = 'gp-v2';
+const VERSION = 'gp-v3';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png',
   'js/app.js', 'js/store.js', 'js/ui.js', 'js/family.js', 'js/lunar.js', 'js/tree.js', 'js/person.js',
-  'js/sheet-import.js', 'js/notify.js', 'js/firebase-config.js', 'js/sample-data.js'];
+  'js/sheet-import.js', 'js/notify.js', 'js/news.js', 'js/firebase-config.js', 'js/sample-data.js'];
 const REMIND_HOUR = 8; // giờ báo (8:00 sáng)
 
 self.addEventListener('install', (e) => {
@@ -31,6 +31,7 @@ async function checkGio(force) {
   const { clan, items } = await res.json();
   const prefRes = await data.match('settings.json');
   const prefs = prefRes ? await prefRes.json() : { days: [3], dayOf: true };
+  if (prefs.serverPush && !force) return; // máy chủ đã gửi nhắc giỗ qua push
   const thresholds = (prefs.days || []).map(Number).filter(n => n > 0).sort((a, b) => a - b);
   const now = new Date();
   if (now.getHours() < REMIND_HOUR && !force) return; // chỉ báo từ 8:00 sáng
@@ -64,6 +65,17 @@ async function checkGio(force) {
     await data.put('sent.json', new Response(JSON.stringify(sent)));
   }
 }
+
+// Thông báo đẩy từ máy chủ (Firebase Cloud Messaging)
+self.addEventListener('push', (e) => {
+  let p = {};
+  try { p = e.data ? e.data.json() : {}; } catch { p = { data: { body: e.data?.text() } }; }
+  const d = { ...(p.notification || {}), ...(p.data || {}) };
+  e.waitUntil(self.registration.showNotification(d.title || 'Gia phả dòng họ', {
+    body: d.body || '', icon: 'icons/icon-192.png', badge: 'icons/badge-96.png',
+    tag: d.tag || 'gp-' + Date.now(), data: { hash: d.hash || '#/' }
+  }));
+});
 
 self.addEventListener('message', (e) => { if (e.data?.type === 'check') e.waitUntil(checkGio(e.data.force)); });
 self.addEventListener('periodicsync', (e) => { if (e.tag === 'gio-check') e.waitUntil(checkGio()); });

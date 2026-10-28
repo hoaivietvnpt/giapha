@@ -75,6 +75,22 @@ Có thể sửa sheet rồi nhập lại bất cứ lúc nào: người cùng **
 - Trang **Ngày giỗ → Ứng dụng & nhắc giỗ → Bật nhắc ngày giỗ**: máy báo **trước 3 ngày** và **đúng ngày giỗ**. Android (Chrome, đã cài) có thể tự kiểm tra khi chạy nền; iPhone kiểm tra mỗi lần mở ứng dụng.
 - Cách chắc chắn nhất: bấm **Thêm vào lịch điện thoại (.ics)** – lịch của máy sẽ nhắc trước 3 ngày và trước 1 ngày, kể cả khi không mở web.
 
+## Tin tức dòng họ
+
+Mục **Tin tức**: Biên tập viên bấm *Viết bài mới* – có ảnh bìa, trình soạn thảo đầy đủ (tiêu đề, chữ đậm/nghiêng, màu, danh sách, căn lề, trích dẫn, liên kết, chèn ảnh, video YouTube). Ảnh được thu nhỏ tự động. Có thể ghim bài, lưu nháp. Ba bài mới nhất hiện ở trang chủ.
+
+## Gửi thông báo đẩy đến điện thoại (push)
+
+Quản trị vào **Quản trị → Gửi thông báo đến mọi người** (hoặc tích *Gửi thông báo* khi đăng bài). Máy nào đã cài ứng dụng và bấm *Bật thông báo* sẽ nhận được, kể cả khi không mở app (iPhone cần iOS 16.4+ và đã *Thêm vào MH chính*). Nhắc ngày giỗ cũng được máy chủ gửi lúc ~8:00 sáng theo mốc mỗi người đã chọn.
+
+Việc gửi do GitHub Actions (`.github/workflows/push.yml`, 10 phút chạy một lần) thực hiện – miễn phí. **Cài đặt một lần:**
+
+1. Firebase Console → ⚙️ Project settings → **Service accounts** → **Generate new private key** → tải file JSON về máy (giữ bí mật, không gửi cho ai).
+2. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**: Name `FIREBASE_SERVICE_ACCOUNT`, Secret = dán toàn bộ nội dung file JSON → *Add secret*.
+3. Tab **Actions** → *Gửi thông báo gia phả* → *Run workflow* để chạy thử.
+
+Lưu ý: GitHub có thể chạy trễ vài phút; nếu repo không có thay đổi trong 60 ngày, GitHub sẽ tạm dừng lịch chạy – vào tab Actions bấm bật lại.
+
 ## Phân quyền tự động
 
 Email ghi trong phần liên hệ của mỗi người (nhập trên web hoặc cột *Email* trong Google Sheet) được tự động thêm vào nhóm **Thành viên** – đăng nhập bằng Gmail đó là xem được số điện thoại, mạng xã hội. Quản trị có thể nâng lên *Biên tập* trong trang Quản trị.
