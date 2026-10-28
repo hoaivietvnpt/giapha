@@ -425,7 +425,9 @@ textarea { resize: vertical; }
 .ios-guide { margin: 12px 0; border: 1px solid var(--line); border-radius: var(--radius); padding: 0 14px; background: var(--surface-2); }
 .ios-guide summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 .ios-guide ol { margin: 4px 0 8px; padding-left: 20px; display: grid; gap: 6px; font-size: 14.5px; }
-.gio-box .btn { margin-top: 10px; justify-self: start; }
+.gio-box > div:last-child { min-width: 0; }
+.gio-box .btn { margin-top: 10px; justify-self: start; max-width: 100%; white-space: normal; text-align: left; }
+.gio-box .btn svg { flex-shrink: 0; }
 
 /* Tin tức */
 @media (max-width: 860px) { #navAdmin { display: none !important; } }
@@ -485,3 +487,6 @@ textarea { resize: vertical; }
 .push-cta > div:nth-child(2) { flex: 1 1 220px; }
 .push-cta p { margin: 2px 0 0; font-size: 14.5px; }
 .push-cta .actions { margin: 0; }
+
+/* Nút dài không tràn khung trên điện thoại */
+@media (max-width: 640px) { .btn { max-width: 100%; white-space: normal; } }
