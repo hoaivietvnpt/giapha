@@ -1,14 +1,35 @@
-// Cài ứng dụng lên điện thoại (PWA) + nhắc ngày giỗ trước 3 ngày
+// Cài ứng dụng lên điện thoại (PWA) + nhắc ngày giỗ (trước 3/7/30 ngày, 8:00 đúng ngày)
 import { gioInLunarYear, todayLunar } from './lunar.js';
 import { $, toast } from './ui.js';
+import { store } from './store.js';
 
 const LS = 'gp-remind';
+const LS_PREFS = 'gp-remind-prefs';
+export const DAY_OPTIONS = [30, 7, 3];
 let installEvt = null;
 const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } } };
 
 export const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const supported = () => 'Notification' in window && 'serviceWorker' in navigator;
+/** Tuỳ chọn nhắc: số ngày trước (3/7/30) và 8:00 đúng ngày giỗ */
+export function getPrefs() {
+  try {
+    const p = JSON.parse(ls.get(LS_PREFS) || 'null');
+    if (p && Array.isArray(p.days)) return { days: p.days.filter(d => DAY_OPTIONS.includes(d)), dayOf: p.dayOf !== false };
+  } catch { /* bỏ qua */ }
+  return { days: [3], dayOf: true };
+}
+async function savePrefs(prefs) {
+  ls.set(LS_PREFS, JSON.stringify(prefs));
+  try {
+    const c = await caches.open('gp-data');
+    await c.put('settings.json', new Response(JSON.stringify(prefs), { headers: { 'Content-Type': 'application/json' } }));
+    if (remindersOn()) (await navigator.serviceWorker.ready).active?.postMessage({ type: 'check' });
+  } catch { /* bỏ qua */ }
+}
+const prefsText = (p) => [...p.days].sort((a, b) => b - a).map(d => `trước ${d} ngày`).concat(p.dayOf ? ['8:00 đúng ngày giỗ'] : []).join(', ') || 'chưa chọn mốc nhắc';
+
 export const remindersOn = () => supported() && Notification.permission === 'granted' && ls.get(LS) !== 'off';
 
 // ---------- Service worker ----------
@@ -36,6 +57,7 @@ export async function syncReminders(persons, clanName) {
   }
   try {
     const c = await caches.open('gp-data');
+    await c.put('settings.json', new Response(JSON.stringify(getPrefs()), { headers: { 'Content-Type': 'application/json' } }));
     await c.put('gio.json', new Response(JSON.stringify({ clan: clanName || '', items, updated: Date.now() }), { headers: { 'Content-Type': 'application/json' } }));
     if (remindersOn()) (await navigator.serviceWorker.ready).active?.postMessage({ type: 'check' });
   } catch (e) { console.warn(e); }
@@ -60,11 +82,82 @@ export async function enableReminders() {
   ls.set(LS, 'on');
   await registerPeriodic();
   (await navigator.serviceWorker.ready).active?.postMessage({ type: 'check', force: true });
-  toast('Đã bật nhắc ngày giỗ (trước 3 ngày)');
+  toast(`Đã bật nhắc ngày giỗ (${prefsText(getPrefs())})`);
   refreshCard();
 }
 
 function disableReminders() { ls.set(LS, 'off'); toast('Đã tắt nhắc ngày giỗ'); refreshCard(); }
+
+// ---------- File lịch (.ics) cho iPhone / Android / Google Calendar ----------
+const icsEsc = (t) => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+function fold(line) {
+  // dòng iCalendar tối đa 75 byte
+  const enc = new TextEncoder(); const out = []; let cur = '', bytes = 0;
+  for (const ch of line) {
+    const b = enc.encode(ch).length;
+    if (bytes + b > 73) {
+      let carry = '';
+      if (cur.endsWith('\\')) { carry = '\\'; cur = cur.slice(0, -1); } // không cắt giữa ký tự thoát
+      out.push(cur); cur = ' ' + carry; bytes = 1 + carry.length;
+    }
+    cur += ch; bytes += b;
+  }
+  out.push(cur); return out.join('\r\n');
+}
+const pad = (n) => String(n).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+/** Báo trước N ngày lúc 8:00 (sự kiện cả ngày bắt đầu 0:00) */
+const before8 = (n) => (n === 1 ? '-PT16H' : `-P${n - 1}DT16H`);
+const alarm = (trigger, text) => ['BEGIN:VALARM', `TRIGGER:${trigger}`, 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(text)}`, 'END:VALARM'];
+
+export function buildICS(persons, clanName, prefs = getPrefs(), years = 10) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GiaPha//VI', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    `X-WR-CALNAME:${icsEsc(`Ngày giỗ${clanName ? ' ' + clanName : ''}`)}`, 'X-WR-TIMEZONE:Asia/Ho_Chi_Minh'];
+  const days = [...prefs.days].sort((a, b) => a - b);
+  // iPhone chỉ giữ tối đa 2 lời nhắc cho mỗi sự kiện → mốc còn lại tạo thành sự kiện nhắc riêng
+  const onMain = [], separate = [];
+  const slots = prefs.dayOf ? 1 : 2;
+  days.forEach((d, i) => (i < slots ? onMain : separate).push(d));
+  const ly0 = todayLunar().y;
+  let n = 0;
+  for (const p of persons) {
+    if (p.alive !== false || !p.deathLunar?.d || !p.deathLunar?.m) continue;
+    n++;
+    const lunar = `ngày ${p.deathLunar.d} tháng ${p.deathLunar.m} âm lịch`;
+    const desc = `Giỗ ${p.name} – ${lunar}${p.gravePlace ? `\nPhần mộ: ${p.gravePlace}` : ''}${clanName ? `\nGia phả ${clanName}` : ''}`;
+    for (let ly = ly0; ly < ly0 + years; ly++) {
+      const d = gioInLunarYear(p.deathLunar.d, p.deathLunar.m, ly); if (!d || d < addDays(new Date(), -1)) continue;
+      const ev = ['BEGIN:VEVENT', `UID:${p.id}-${ly}@giapha`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(addDays(d, 1))}`,
+        `SUMMARY:${icsEsc(`Giỗ ${p.name}`)}`, `DESCRIPTION:${icsEsc(desc)}`, 'TRANSP:TRANSPARENT'];
+      if (p.gravePlace) ev.push(`LOCATION:${icsEsc(p.gravePlace)}`);
+      if (prefs.dayOf) ev.push(...alarm('PT8H', `Hôm nay giỗ ${p.name} (${lunar})`));
+      for (const k of onMain) ev.push(...alarm(before8(k), `Còn ${k} ngày đến giỗ ${p.name}`));
+      ev.push('END:VEVENT'); L.push(...ev);
+      for (const k of separate) {
+        const r = addDays(d, -k);
+        L.push('BEGIN:VEVENT', `UID:${p.id}-${ly}-nhac${k}@giapha`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(r)}`, `DTEND;VALUE=DATE:${ymd(addDays(r, 1))}`,
+          `SUMMARY:${icsEsc(`Còn ${k} ngày đến giỗ ${p.name}`)}`, `DESCRIPTION:${icsEsc(desc)}`, 'TRANSP:TRANSPARENT',
+          ...alarm('PT8H', `Còn ${k} ngày đến giỗ ${p.name}`), 'END:VEVENT');
+      }
+    }
+  }
+  L.push('END:VCALENDAR');
+  return { text: L.map(fold).join('\r\n') + '\r\n', count: n };
+}
+
+export function downloadICS(persons, clanName, filename = 'ngay-gio.ics') {
+  const prefs = getPrefs();
+  const { text, count } = buildICS([...persons], clanName, prefs);
+  if (!count) return toast('Chưa có ngày giỗ âm lịch nào để thêm vào lịch');
+  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast(`Đã tạo lịch giỗ ${count} người cho 10 năm tới (nhắc ${prefsText(prefs)}). ${isIOS() ? 'Bấm “Thêm tất cả” để lưu vào Lịch.' : 'Mở file để thêm vào lịch.'}`, 6000);
+}
 
 // ---------- Giao diện (thẻ trên trang Ngày giỗ) ----------
 export function reminderCard() { return '<section class="card app-card" id="appCard"></section>'; }
@@ -80,12 +173,13 @@ export function refreshCard() {
   }
   const perm = supported() ? Notification.permission : 'unsupported';
   const on = remindersOn();
+  const prefs = getPrefs();
   el.innerHTML = `
     <div class="app-card-h">
       <img src="icons/icon-192.png" alt="" width="48" height="48">
       <div><h2>Ứng dụng & nhắc giỗ</h2>
       <p class="muted">${installed ? 'Ứng dụng đã được cài trên máy này.' : 'Cài gia phả lên màn hình chính để mở nhanh như một ứng dụng.'}
-      Khi bật nhắc, máy sẽ báo <b>trước 3 ngày</b> và <b>đúng ngày giỗ</b>.</p></div>
+      Đang chọn nhắc: <b>${prefsText(prefs)}</b>.</p></div>
     </div>
     <div class="actions left">
       ${install}
@@ -94,9 +188,31 @@ export function refreshCard() {
           : on ? `<span class="badge alive">Đang bật nhắc giỗ</span><button class="btn small ghost" id="remOff">Tắt</button><button class="btn small" id="remTest">Thử thông báo</button>`
             : '<button class="btn primary" id="remOn">Bật nhắc ngày giỗ</button>'}
     </div>
-    <p class="muted tiny">Lưu ý: trên Android (Chrome) ứng dụng đã cài có thể tự kiểm tra ngày giỗ khi chạy nền; trên iPhone, nhắc được kiểm tra mỗi khi mở ứng dụng. Để chắc chắn không quên, hãy thêm file lịch (.ics) – lịch điện thoại sẽ nhắc trước 3 ngày.</p>`;
+    <fieldset class="rem-prefs"><legend>Thời điểm nhắc</legend>
+      <div class="chips-row">
+        ${DAY_OPTIONS.map(d => `<label class="pick"><input type="checkbox" data-day="${d}" ${prefs.days.includes(d) ? 'checked' : ''}><span>Trước ${d} ngày</span></label>`).join('')}
+        <label class="pick"><input type="checkbox" id="dayOf" ${prefs.dayOf ? 'checked' : ''}><span>8:00 đúng ngày giỗ</span></label>
+      </div>
+      <p class="muted tiny">Áp dụng cho cả thông báo của ứng dụng và file lịch (.ics). Các lời nhắc trước đều báo lúc 8:00 sáng.</p>
+    </fieldset>
+    <details class="ios-guide" ${isIOS() ? 'open' : ''}><summary>Thêm nhắc giỗ vào Lịch trên iPhone</summary>
+      <ol>
+        <li>Mở trang này bằng <b>Safari</b> (nếu đang xem trong Zalo/Facebook, bấm ⋯ → <i>Mở bằng trình duyệt</i>).</li>
+        <li>Chọn thời điểm nhắc ở trên, rồi bấm <button type="button" class="btn small primary" id="icsBtn2">Thêm vào lịch điện thoại (.ics)</button></li>
+        <li>Safari hiện danh sách các ngày giỗ → bấm <b>Thêm tất cả</b> → chọn lịch muốn lưu (nên tạo riêng lịch “Ngày giỗ” trong ứng dụng Lịch để dễ quản lý).</li>
+        <li>Kiểm tra <b>Cài đặt → Thông báo → Lịch</b> đang bật để iPhone báo đúng giờ.</li>
+        <li>Khi gia phả có thêm người hoặc muốn đổi mốc nhắc: xoá lịch “Ngày giỗ” cũ trong ứng dụng Lịch rồi thêm lại file mới để không bị trùng.</li>
+      </ol>
+      <p class="muted tiny">Lịch của iPhone tự nhắc cả khi không mở web, kể cả khi không có mạng. Lịch được tính sẵn cho 10 năm tới.</p>
+    </details>
+    <p class="muted tiny">Thông báo của ứng dụng: Android (Chrome, đã cài) có thể tự kiểm tra khi chạy nền; iPhone kiểm tra mỗi khi mở ứng dụng. Cách chắc chắn nhất là thêm file lịch (.ics).</p>`;
   $('#installBtn', el)?.addEventListener('click', async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; refreshCard(); });
   $('#remOn', el)?.addEventListener('click', enableReminders);
+  $('#icsBtn2', el)?.addEventListener('click', () => downloadICS(store.persons.values(), store.clan.name));
+  el.querySelectorAll('.rem-prefs input').forEach(i => i.onchange = async () => {
+    const p = { days: [...el.querySelectorAll('[data-day]:checked')].map(x => +x.dataset.day), dayOf: $('#dayOf', el).checked };
+    await savePrefs(p); toast(`Sẽ nhắc ${prefsText(p)}`); refreshCard();
+  });
   $('#remOff', el)?.addEventListener('click', disableReminders);
   $('#remTest', el)?.addEventListener('click', async () => {
     (await navigator.serviceWorker.ready).showNotification('Gia phả – thử thông báo', { body: 'Thông báo nhắc ngày giỗ đang hoạt động.', icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'gp-test' });

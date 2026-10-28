@@ -3,6 +3,7 @@ import { store, uid } from './store.js';
 import { $, $$, esc, ctx, toast, openModal, closeModal, confirmBox, avatar, resizeImage, icon } from './ui.js';
 import { lifespan, ageText, fmtDate, lunarText, parseDate, yearOf, fmtSolar } from './family.js';
 import { nextGio, solarToLunar } from './lunar.js';
+import { downloadICS } from './notify.js';
 
 // ---------- Điều hướng ----------
 export function personLink(id) {
@@ -74,7 +75,8 @@ export function renderPersonDetail(id) {
       gio = `<div class="gio-box">
         <div class="gio-ic">${icon.incense}</div>
         <div><small>Ngày giỗ (âm lịch)</small><b>${esc(lunarText({ d: p.deathLunar.d, m: p.deathLunar.m }))}</b>
-        <div class="muted">Giỗ ${dy ? `lần thứ ${n.lunarYear - dy} ` : ''}vào ${fmtSolar(n.date)} – ${days === 0 ? '<b class="hot">hôm nay</b>' : `còn ${days} ngày`}</div></div></div>`;
+        <div class="muted">Giỗ ${dy ? `lần thứ ${n.lunarYear - dy} ` : ''}vào ${fmtSolar(n.date)} – ${days === 0 ? '<b class="hot">hôm nay</b>' : `còn ${days} ngày`}</div>
+        <button type="button" class="btn small" data-ics>${icon.plus} Thêm ngày giỗ này vào lịch điện thoại</button></div></div>`;
     }
   }
 
@@ -141,6 +143,7 @@ export function renderPersonDetail(id) {
     } catch { /* người dùng huỷ */ }
   };
   $('[data-edit]', body)?.addEventListener('click', () => openPersonForm(id));
+  $('[data-ics]', body)?.addEventListener('click', () => downloadICS([p], store.clan.name, `gio-${p.id}.ics`));
   $$('[data-add]', body).forEach(b => b.onclick = () => addRelative(id, b.dataset.add));
   $('[data-del]', body)?.addEventListener('click', async () => {
     const n = kids.length;

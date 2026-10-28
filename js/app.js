@@ -6,7 +6,7 @@ import { todayLunar, canChiYear, gioInLunarYear } from './lunar.js';
 import { TreeView } from './tree.js';
 import { renderPersonDetail, openPersonForm, openPerson, closePerson, personLink } from './person.js';
 import { openSheetImport, exportCSV } from './sheet-import.js';
-import { initPWA, syncReminders, reminderCard, refreshCard } from './notify.js';
+import { initPWA, syncReminders, reminderCard, refreshCard, downloadICS } from './notify.js';
 
 store.toast = toast;
 let currentPage = null;
@@ -303,26 +303,7 @@ function pageGio() {
   </div>`;
   refreshCard();
   $$('[data-r]').forEach(b => b.onclick = () => { gioRange = +b.dataset.r; pageGio(); });
-  $('#icsBtn').onclick = () => {
-    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GiaPha//VI', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:Ngày giỗ ${store.clan.name || ''}`.trim()];
-    const ly0 = todayLunar().y;
-    const pad = (n) => String(n).padStart(2, '0');
-    const ymd = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
-    for (const p of store.persons.values()) {
-      if (p.alive !== false || !p.deathLunar?.d) continue;
-      for (let ly = ly0; ly < ly0 + 10; ly++) {
-        const d = gioInLunarYear(p.deathLunar.d, p.deathLunar.m, ly); if (!d) continue;
-        const e = new Date(d); e.setDate(e.getDate() + 1);
-        lines.push('BEGIN:VEVENT', `UID:${p.id}-${ly}@giapha`, `DTSTAMP:${ymd(new Date())}T000000Z`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(e)}`,
-          `SUMMARY:Giỗ ${p.name}`, `DESCRIPTION:${lunarText({ d: p.deathLunar.d, m: p.deathLunar.m })} âm lịch`,
-          'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', `DESCRIPTION:Còn 3 ngày đến giỗ ${p.name}`, 'END:VALARM',
-          'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', `DESCRIPTION:Ngày mai giỗ ${p.name}`, 'END:VALARM', 'END:VEVENT');
-      }
-    }
-    lines.push('END:VCALENDAR');
-    download('ngay-gio.ics', new Blob([lines.join('\r\n')], { type: 'text/calendar' }));
-    toast('Đã tải file lịch 10 năm tới (nhắc trước 3 ngày) – mở file để thêm vào lịch');
-  };
+  $('#icsBtn').onclick = () => downloadICS(store.persons.values(), store.clan.name);
 }
 
 // ---------- QUẢN TRỊ ----------
