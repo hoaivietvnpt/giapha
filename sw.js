@@ -1,9 +1,9 @@
 // Service worker: chạy ngoại tuyến + nhắc ngày giỗ
-const VERSION = 'gp-v1';
+const VERSION = 'gp-v2';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png',
   'js/app.js', 'js/store.js', 'js/ui.js', 'js/family.js', 'js/lunar.js', 'js/tree.js', 'js/person.js',
   'js/sheet-import.js', 'js/notify.js', 'js/firebase-config.js', 'js/sample-data.js'];
-const REMIND_DAYS = 3;
+const REMIND_HOUR = 8; // giờ báo (8:00 sáng)
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting()));
@@ -29,18 +29,25 @@ async function checkGio(force) {
   const data = await caches.open('gp-data');
   const res = await data.match('gio.json'); if (!res) return;
   const { clan, items } = await res.json();
+  const prefRes = await data.match('settings.json');
+  const prefs = prefRes ? await prefRes.json() : { days: [3], dayOf: true };
+  const thresholds = (prefs.days || []).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+  const now = new Date();
+  if (now.getHours() < REMIND_HOUR && !force) return; // chỉ báo từ 8:00 sáng
   const sentRes = await data.match('sent.json');
   const sent = sentRes ? await sentRes.json() : {};
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
   const t0 = ymd(today);
   let changed = false;
   for (const it of items) {
     for (const ds of it.dates) {
       const [y, m, d] = ds.split('-').map(Number);
       const days = Math.round((new Date(y, m - 1, d) - today) / 86400000);
-      if (days < 0 || days > REMIND_DAYS) continue;
-      const kind = days === 0 ? 'day' : 'before';
-      const key = `${it.id}|${ds}|${kind}`;
+      let mark = null;
+      if (days === 0 && prefs.dayOf !== false) mark = 'd0';
+      else if (days > 0) { const n = thresholds.find(t => t >= days); if (n) mark = 'd' + n; }
+      if (!mark) continue;
+      const key = `${it.id}|${ds}|${mark}`;
       if (sent[key] && !force) continue;
       const title = days === 0 ? `Hôm nay giỗ ${it.name}` : `Còn ${days} ngày đến giỗ ${it.name}`;
       const body = `Ngày ${d}/${m}/${y} (${it.lunar})${clan ? ' · Gia phả ' + clan : ''}`;
