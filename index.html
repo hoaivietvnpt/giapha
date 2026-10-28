@@ -5,12 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Gia Phả Dòng Họ</title>
   <meta name="description" content="Gia phả điện tử của dòng họ: cây phả hệ, thông tin thành viên, ngày giỗ âm lịch, phần mộ.">
-  <meta name="theme-color" content="#7a1c1c">
+  <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12100e" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237a1c1c'/%3E%3Cpath d='M32 12v40M32 26l-12 10M32 26l12 10M32 38l-8 8M32 38l8 8' stroke='%23e8c26a' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Giao diện sáng/tối: nhớ lựa chọn trên máy này
+    (function () {
+      try { var t = localStorage.getItem('gp-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+      document.addEventListener('DOMContentLoaded', function () {
+        var b = document.getElementById('themeBtn');
+        b.onclick = function () {
+          var cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          var next = cur === 'dark' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = next;
+          try { localStorage.setItem('gp-theme', next); } catch (e) {}
+        };
+      });
+    })();
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -23,13 +39,16 @@
         <span class="brand-sub" id="brandSub">Dòng họ</span>
       </span>
     </a>
-    <nav class="nav" id="nav">
-      <a href="#/" data-page="home">Trang chủ</a>
-      <a href="#/tree" data-page="tree">Cây gia phả</a>
-      <a href="#/list" data-page="list">Thành viên</a>
-      <a href="#/gio" data-page="gio">Ngày giỗ</a>
-      <a href="#/admin" data-page="admin" class="hidden" id="navAdmin">Quản trị</a>
+    <nav class="nav" id="nav" aria-label="Điều hướng chính">
+      <a href="#/" data-page="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span>Trang chủ</span></a>
+      <a href="#/tree" data-page="tree"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Cây gia phả</span></a>
+      <a href="#/list" data-page="list"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></svg><span>Thành viên</span></a>
+      <a href="#/gio" data-page="gio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 13.5v4"/></svg><span>Ngày giỗ</span></a>
+      <a href="#/admin" data-page="admin" class="hidden" id="navAdmin"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Quản trị</span></a>
     </nav>
+    <button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Đổi giao diện sáng / tối" title="Đổi giao diện sáng / tối">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
     <div class="auth" id="auth"></div>
   </header>
 
