@@ -1,0 +1,25 @@
+{
+  "name": "Gia Phả Dòng Họ",
+  "short_name": "Gia phả",
+  "description": "Gia phả điện tử của dòng họ: cây phả hệ, thông tin thành viên, lịch ngày giỗ âm lịch và vị trí phần mộ.",
+  "lang": "vi",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f5f0",
+  "theme_color": "#9f1d1d",
+  "categories": ["lifestyle", "social", "education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Cây gia phả", "url": "./#/tree", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ngày giỗ", "url": "./#/gio", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Thành viên", "url": "./#/list", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

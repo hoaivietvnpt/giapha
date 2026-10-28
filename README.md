@@ -69,6 +69,16 @@ Tiện khi đã có sẵn danh sách hoặc nhiều người cùng điền:
 
 Có thể sửa sheet rồi nhập lại bất cứ lúc nào: người cùng **Mã** sẽ được cập nhật. Nút *Xuất ra CSV* tạo file đúng định dạng này từ dữ liệu đang có trên web. Ngoài link Google Sheet, cũng có thể chọn file `.csv` hoặc `.xlsx` từ máy.
 
+## Cài lên điện thoại & nhắc ngày giỗ
+
+- Web là một ứng dụng (PWA): trên Android mở bằng Chrome → menu ⋮ → **Cài đặt ứng dụng**; trên iPhone mở bằng Safari → **Chia sẻ → Thêm vào MH chính**. Biểu tượng gia phả sẽ nằm trên màn hình chính.
+- Trang **Ngày giỗ → Ứng dụng & nhắc giỗ → Bật nhắc ngày giỗ**: máy báo **trước 3 ngày** và **đúng ngày giỗ**. Android (Chrome, đã cài) có thể tự kiểm tra khi chạy nền; iPhone kiểm tra mỗi lần mở ứng dụng.
+- Cách chắc chắn nhất: bấm **Thêm vào lịch điện thoại (.ics)** – lịch của máy sẽ nhắc trước 3 ngày và trước 1 ngày, kể cả khi không mở web.
+
+## Phân quyền tự động
+
+Email ghi trong phần liên hệ của mỗi người (nhập trên web hoặc cột *Email* trong Google Sheet) được tự động thêm vào nhóm **Thành viên** – đăng nhập bằng Gmail đó là xem được số điện thoại, mạng xã hội. Quản trị có thể nâng lên *Biên tập* trong trang Quản trị.
+
 ## Mẹo nhập liệu
 
 - Bắt đầu từ **thủy tổ** (người cao nhất), rồi bấm vào người đó → *Thêm con*, *Thêm vợ/chồng*… để mở rộng dần.
