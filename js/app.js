@@ -5,6 +5,7 @@ import { buildIndex, upcomingGio, lifespan, yearOf, norm, fmtSolar, lunarText } 
 import { todayLunar, canChiYear, gioInLunarYear } from './lunar.js';
 import { TreeView } from './tree.js';
 import { renderPersonDetail, openPersonForm, openPerson, closePerson, personLink } from './person.js';
+import { openSheetImport, exportCSV } from './sheet-import.js';
 
 store.toast = toast;
 let currentPage = null;
@@ -119,7 +120,7 @@ function pageHome() {
   </section>
 
   ${total === 0 ? `<div class="empty card"><h2>Gia phả còn trống</h2><p>Bắt đầu bằng cách thêm vị thủy tổ (người cao nhất mà dòng họ biết).</p>
-    ${store.canEdit ? `<button class="btn primary" id="addFirst">${icon.plus} Thêm thủy tổ</button>` : store.mode === 'firebase' && !store.user ? '<p class="muted">Đăng nhập để bắt đầu.</p>' : ''}</div>` : ''}
+    ${store.canEdit ? `<div class="actions" style="justify-content:center"><button class="btn primary" id="addFirst">${icon.plus} Thêm thủy tổ</button><button class="btn" id="sheetFirst">Nhập từ Google Sheet</button></div>` : store.mode === 'firebase' && !store.user ? '<p class="muted">Đăng nhập để bắt đầu.</p>' : ''}</div>` : ''}
 
   <div class="home-grid">
     <section class="card">
@@ -135,6 +136,7 @@ function pageHome() {
     </section>
   </div>`;
   $('#addFirst')?.addEventListener('click', () => openPersonForm(null, { alive: false }, 'Thêm thủy tổ'));
+  $('#sheetFirst')?.addEventListener('click', openSheetImport);
 }
 
 function gioItem(g) {
@@ -232,7 +234,7 @@ function pageList() {
   const branches = [...new Set([...store.persons.values()].map(p => p.branch).filter(Boolean))];
   $('#view').innerHTML = `
   <div class="page">
-    <div class="page-h"><h1>Thành viên dòng họ</h1>${store.canEdit ? `<button class="btn primary" id="lAdd">${icon.plus} Thêm thành viên</button>` : ''}</div>
+    <div class="page-h"><h1>Thành viên dòng họ</h1>${store.canEdit ? `<div class="actions" style="margin:0"><button class="btn" id="lSheet">Nhập từ Google Sheet</button><button class="btn primary" id="lAdd">${icon.plus} Thêm thành viên</button></div>` : ''}</div>
     <div class="filters">
       <input id="lq" type="search" placeholder="Tìm theo tên (có thể gõ không dấu)…" value="${esc(listState.q)}">
       <select id="lgen"><option value="">Mọi đời</option>${Array.from({ length: idx.maxGen }, (_, i) => `<option value="${i + 1}" ${listState.gen == i + 1 ? 'selected' : ''}>Đời ${i + 1}</option>`).join('')}</select>
@@ -269,6 +271,7 @@ function pageList() {
   const bind = (sel, key) => { const el = $(sel); if (el) el.oninput = () => { listState[key] = el.value; draw(); }; };
   bind('#lq', 'q'); bind('#lgen', 'gen'); bind('#lgender', 'gender'); bind('#lstatus', 'status'); bind('#lbranch', 'branch');
   $('#lAdd')?.addEventListener('click', () => openPersonForm(null));
+  $('#lSheet')?.addEventListener('click', openSheetImport);
 }
 
 // ---------- NGÀY GIỖ ----------
@@ -339,6 +342,16 @@ function pageAdmin() {
     </form>` : ''}
 
     <div class="card">
+      <h2>Google Sheet</h2>
+      <p class="muted">Nhập cả gia phả từ một Google Sheet theo mẫu – tiện khi nhiều người cùng điền hoặc đã có sẵn danh sách. Có thể nhập lại nhiều lần để cập nhật.</p>
+      ${c.sheetUrl ? `<p class="tiny">Sheet đã dùng: <a href="${esc(c.sheetUrl)}" target="_blank" rel="noopener">${esc(c.sheetUrl.slice(0, 70))}…</a></p>` : ''}
+      <div class="actions left">
+        <button class="btn primary" id="sheetBtn">Nhập từ Google Sheet…</button>
+        <button class="btn" id="csvBtn">Xuất ra CSV (mở bằng Google Sheet / Excel)</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Sao lưu dữ liệu</h2>
       <p class="muted">Nên tải bản sao lưu định kỳ. File JSON chứa toàn bộ gia phả${store.canSeeContacts ? ' (kể cả liên hệ)' : ''}.</p>
       <div class="actions left">
@@ -366,6 +379,8 @@ function pageAdmin() {
     }
     await store.saveAccess(data); toast('Đã lưu phân quyền');
   });
+  $('#sheetBtn').onclick = openSheetImport;
+  $('#csvBtn').onclick = exportCSV;
   $('#expBtn').onclick = () => {
     const d = new Date().toISOString().slice(0, 10);
     download(`gia-pha-${d}.json`, new Blob([JSON.stringify(store.exportAll(), null, 2)], { type: 'application/json' }));
