@@ -17,6 +17,10 @@ let gioRange = 60;
 let syncT;
 const PAGE_TITLE = { home: '', tree: 'Cây gia phả', list: 'Thành viên', gio: 'Lịch ngày giỗ', admin: 'Quản trị' };
 initPWA();
+function pageTitle(pg) {
+  const base = store.clan.name ? `Gia phả ${store.clan.name}` : 'Gia Phả Dòng Họ';
+  return PAGE_TITLE[pg] ? `${PAGE_TITLE[pg]} – ${base}` : `${base} – Cây phả hệ, ngày giỗ âm lịch`;
+}
 
 // ---------- Khởi động ----------
 store.on((what) => {
@@ -46,8 +50,7 @@ function route(force) {
     $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.page === pg));
     if (pg !== 'tree') { tree = null; }
     document.body.dataset.page = pg;
-    const base = store.clan.name ? `Gia phả ${store.clan.name}` : 'Gia Phả Dòng Họ';
-    document.title = PAGE_TITLE[pg] ? `${PAGE_TITLE[pg]} – ${base}` : base;
+    document.title = pageTitle(pg);
     PAGES[pg]();
   } else if (pg === 'tree' && tree) {
     drawTree(false);
@@ -74,7 +77,7 @@ function renderChrome() {
   const c = store.clan;
   $('#brandTitle').textContent = c.name ? `Gia phả ${c.name}` : 'Gia Phả Dòng Họ';
   $('#brandSub').textContent = c.origin || 'Uống nước nhớ nguồn';
-  document.title = c.name ? `Gia phả ${c.name}` : 'Gia Phả Dòng Họ';
+  document.title = pageTitle(currentPage);
   let dismissed = false; try { dismissed = sessionStorage.getItem('gp-banner') === '1'; } catch { /* bỏ qua */ }
   $('#demoBanner').classList.toggle('hidden', store.mode !== 'demo' || dismissed);
   $('#bannerX').onclick = () => { try { sessionStorage.setItem('gp-banner', '1'); } catch { /* bỏ qua */ } $('#demoBanner').classList.add('hidden'); };
