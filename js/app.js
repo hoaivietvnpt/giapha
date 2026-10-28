@@ -6,6 +6,7 @@ import { todayLunar, canChiYear, gioInLunarYear } from './lunar.js';
 import { TreeView } from './tree.js';
 import { renderPersonDetail, openPersonForm, openPerson, closePerson, personLink } from './person.js';
 import { openSheetImport, exportCSV } from './sheet-import.js';
+import { initPWA, syncReminders, reminderCard, refreshCard } from './notify.js';
 
 store.toast = toast;
 let currentPage = null;
@@ -13,11 +14,17 @@ let tree = null;
 const treeOpts = { rootId: '', hideOutside: false };
 const listState = { q: '', gen: '', gender: '', status: '', branch: '' };
 let gioRange = 60;
+let syncT;
+const PAGE_TITLE = { home: '', tree: 'Cây gia phả', list: 'Thành viên', gio: 'Lịch ngày giỗ', admin: 'Quản trị' };
+initPWA();
 
 // ---------- Khởi động ----------
 store.on((what) => {
   if (!store.ready) return;
-  if (what === 'all' || what === 'persons' || what === 'clan') ctx.idx = buildIndex(store.persons, store.clan);
+  if (what === 'all' || what === 'persons' || what === 'clan') {
+    ctx.idx = buildIndex(store.persons, store.clan);
+    clearTimeout(syncT); syncT = setTimeout(() => syncReminders(store.persons, store.clan.name), 800);
+  }
   renderChrome();
   if (what === 'contacts') return route(false);
   if (what === 'persons' && currentPage === 'tree' && tree) { drawTree(false); return route(false); }
@@ -39,6 +46,8 @@ function route(force) {
     $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.page === pg));
     if (pg !== 'tree') { tree = null; }
     document.body.dataset.page = pg;
+    const base = store.clan.name ? `Gia phả ${store.clan.name}` : 'Gia Phả Dòng Họ';
+    document.title = PAGE_TITLE[pg] ? `${PAGE_TITLE[pg]} – ${base}` : base;
     PAGES[pg]();
   } else if (pg === 'tree' && tree) {
     drawTree(false);
@@ -287,7 +296,9 @@ function pageGio() {
     <div class="seg tabs">${[[30, '30 ngày tới'], [60, '2 tháng'], [180, '6 tháng'], [400, 'Cả năm']].map(([v, l]) => `<button class="${gioRange === v ? 'on' : ''}" data-r="${v}">${l}</button>`).join('')}</div>
     ${list.length ? `<ul class="gio-list">${list.map(gioItem).join('')}</ul>` : `<div class="empty card"><p>Không có ngày giỗ nào trong khoảng này.</p></div>`}
     ${all.length < [...store.persons.values()].filter(p => p.alive === false).length ? `<p class="muted note">Một số người đã mất chưa có ngày giỗ âm lịch – hãy cập nhật để hiện trong lịch.</p>` : ''}
+    ${reminderCard()}
   </div>`;
+  refreshCard();
   $$('[data-r]').forEach(b => b.onclick = () => { gioRange = +b.dataset.r; pageGio(); });
   $('#icsBtn').onclick = () => {
     const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GiaPha//VI', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:Ngày giỗ ${store.clan.name || ''}`.trim()];
@@ -301,12 +312,13 @@ function pageGio() {
         const e = new Date(d); e.setDate(e.getDate() + 1);
         lines.push('BEGIN:VEVENT', `UID:${p.id}-${ly}@giapha`, `DTSTAMP:${ymd(new Date())}T000000Z`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(e)}`,
           `SUMMARY:Giỗ ${p.name}`, `DESCRIPTION:${lunarText({ d: p.deathLunar.d, m: p.deathLunar.m })} âm lịch`,
+          'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', `DESCRIPTION:Còn 3 ngày đến giỗ ${p.name}`, 'END:VALARM',
           'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', `DESCRIPTION:Ngày mai giỗ ${p.name}`, 'END:VALARM', 'END:VEVENT');
       }
     }
     lines.push('END:VCALENDAR');
     download('ngay-gio.ics', new Blob([lines.join('\r\n')], { type: 'text/calendar' }));
-    toast('Đã tải file lịch 10 năm tới – mở file để thêm vào lịch');
+    toast('Đã tải file lịch 10 năm tới (nhắc trước 3 ngày) – mở file để thêm vào lịch');
   };
 }
 
@@ -334,7 +346,7 @@ function pageAdmin() {
 
     ${store.mode === 'firebase' ? `<form class="card" id="accForm">
       <h2>Phân quyền</h2>
-      <p class="muted">Mỗi dòng một địa chỉ Gmail. Ai cũng xem được cây gia phả; chỉ <b>Thành viên</b> trở lên mới xem số điện thoại, mạng xã hội.</p>
+      <p class="muted">Mỗi dòng một địa chỉ Gmail. Ai cũng xem được cây gia phả; chỉ <b>Thành viên</b> trở lên mới xem số điện thoại, mạng xã hội. Email ghi trong thông tin liên hệ của mỗi người (nhập tay hoặc từ Google Sheet) sẽ <b>tự động được thêm vào nhóm Thành viên</b>.</p>
       <label>Quản trị (toàn quyền)<textarea name="owners" rows="2" ${store.isOwner ? '' : 'disabled'}>${esc((a.owners || []).join('\n'))}</textarea></label>
       <label>Biên tập (thêm/sửa/xoá người)<textarea name="editors" rows="3" ${store.isOwner ? '' : 'disabled'}>${esc((a.editors || []).join('\n'))}</textarea></label>
       <label>Thành viên (xem liên hệ)<textarea name="members" rows="5" ${store.isOwner ? '' : 'disabled'}>${esc((a.members || []).join('\n'))}</textarea></label>

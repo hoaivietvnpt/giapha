@@ -178,6 +178,7 @@ class Store {
     }
     const contactUpd = contact !== undefined ? { [id]: contact && Object.values(contact).some(v => v) ? contact : null } : {};
     await this._write(updates, contactUpd);
+    if (contact?.email) this.autoMember([contact.email]);
     return id;
   }
 
@@ -192,6 +193,24 @@ class Store {
       if (Object.keys(data).length) updates.push({ id: p.id, data });
     }
     await this._write(updates, {}, [id]);
+  }
+
+  /** Email có trong thông tin liên hệ được tự thêm vào nhóm Thành viên (xem được liên hệ) */
+  async autoMember(emails) {
+    if (this.mode !== 'firebase' || !this.canEdit) return 0;
+    const a = this.access || {};
+    const known = new Set([...(a.owners || []), ...(a.editors || []), ...(a.members || [])].map(e => e.toLowerCase()));
+    const add = [...new Set((emails || []).map(e => (e || '').trim().toLowerCase())
+      .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && !known.has(e)))];
+    if (!add.length) return 0;
+    const members = [...(a.members || []), ...add];
+    const { fs } = this.fb;
+    try {
+      await fs.updateDoc(fs.doc(this.db, 'meta', 'access'), { members });
+      this.access = { ...a, members };
+      this.toast?.(`Đã thêm ${add.length} email vào nhóm Thành viên`);
+    } catch (e) { console.warn('autoMember', e); }
+    return add.length;
   }
 
   async saveClan(data) {
@@ -245,6 +264,7 @@ class Store {
       await batch.commit();
     }
     if (data.clan) await this.saveClan(data.clan);
+    await this.autoMember(Object.values(data.contacts || {}).map(c => c.email));
   }
 
   resetDemo() {
