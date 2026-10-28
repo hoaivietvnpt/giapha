@@ -1,0 +1,37 @@
+name: Gửi thông báo gia phả
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # thông báo của quản trị (10 phút/lần)
+    - cron: '7 1 * * *'      # nhắc ngày giỗ lúc ~8:00 giờ Việt Nam
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'notices = thông báo quản trị, gio = nhắc ngày giỗ'
+        default: notices
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-${{ github.event.schedule || github.event.inputs.mode || 'notices' }}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Asia/Ho_Chi_Minh
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gửi
+        run: |
+          if [ "${{ github.event.schedule }}" = "7 1 * * *" ] || [ "${{ github.event.inputs.mode }}" = "gio" ]; then
+            node tools/send-push.mjs gio
+          else
+            node tools/send-push.mjs notices
+          fi
