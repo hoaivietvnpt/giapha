@@ -57,6 +57,18 @@ Vào **Quản trị** để:
 - **Phân quyền**: thêm Gmail của người trong họ vào *Biên tập* (được sửa gia phả) hoặc *Thành viên* (được xem SĐT, MXH).
 - Nếu muốn bắt đầu từ dữ liệu mẫu: ở chế độ dùng thử bấm *Tải bản sao lưu*, sau đó ở bản Firebase bấm *Nhập từ file*.
 
+## Nhập gia phả từ Google Sheet
+
+Tiện khi đã có sẵn danh sách hoặc nhiều người cùng điền:
+
+1. Mở [Google Sheet mẫu](https://docs.google.com/spreadsheets/d/1y6rTIRon0wkKMxYWBlnXtFudMNTMvAJVYnGS-nQL13w/copy) để tạo bản sao vào Drive của bạn (hoặc tải [file mẫu CSV](mau/gia-pha-mau.csv)). Xoá các dòng mẫu (hư cấu) rồi điền người trong họ.
+2. Mỗi người một dòng, có **Mã** riêng (1, 2, 3…). Cột **Mã cha**, **Mã mẹ**, **Mã vợ/chồng** ghi mã của người tương ứng (nhiều vợ/chồng cách nhau bằng `;`).
+3. Ngày tháng: `12/03/1950`, `03/1950` hoặc `1950`. Ngày giỗ âm lịch: `15 tháng 7` (thêm chữ `nhuận` nếu tháng nhuận); để trống thì web tự tính từ ngày mất dương lịch.
+4. **Chia sẻ** sheet: “Bất kỳ ai có đường liên kết” → Người xem.
+5. Trên web: **Quản trị → Nhập từ Google Sheet** → dán link → *Đọc dữ liệu* → kiểm tra → *Nhập vào gia phả*.
+
+Có thể sửa sheet rồi nhập lại bất cứ lúc nào: người cùng **Mã** sẽ được cập nhật. Nút *Xuất ra CSV* tạo file đúng định dạng này từ dữ liệu đang có trên web. Ngoài link Google Sheet, cũng có thể chọn file `.csv` hoặc `.xlsx` từ máy.
+
 ## Mẹo nhập liệu
 
 - Bắt đầu từ **thủy tổ** (người cao nhất), rồi bấm vào người đó → *Thêm con*, *Thêm vợ/chồng*… để mở rộng dần.
