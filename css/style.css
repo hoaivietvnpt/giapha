@@ -416,3 +416,13 @@ textarea { resize: vertical; }
 .app-card-h img { border-radius: 12px; flex: none; }
 .app-card-h h2 { margin-bottom: 4px; }
 .app-card .actions { align-items: center; }
+.rem-prefs { margin: 18px 0 8px; }
+.rem-prefs legend { font-size: 15px; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 99px; background: var(--surface); color: var(--fg); cursor: pointer; font-size: 14.5px; transition: border-color var(--t-fast), background var(--t-fast); }
+.pick input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; }
+.pick:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); font-weight: 600; }
+.ios-guide { margin: 12px 0; border: 1px solid var(--line); border-radius: var(--radius); padding: 0 14px; background: var(--surface-2); }
+.ios-guide summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.ios-guide ol { margin: 4px 0 8px; padding-left: 20px; display: grid; gap: 6px; font-size: 14.5px; }
+.gio-box .btn { margin-top: 10px; justify-self: start; }
