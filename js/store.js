@@ -21,6 +21,8 @@ class Store {
     this.mode = firebaseConfig.apiKey ? 'firebase' : 'demo';
     this.persons = new Map();
     this.contacts = new Map();
+    this.news = new Map();
+    this.notices = [];
     this.clan = {};
     this.access = { owners: [], editors: [], members: [] };
     this.user = null;
@@ -60,6 +62,7 @@ class Store {
     this.persons = new Map((data.persons || []).map(p => [p.id, p]));
     this.contacts = new Map(Object.entries(data.contacts || {}));
     this.clan = data.clan || this.clan || {};
+    if (data.news) this.news = new Map(data.news.map(n => [n.id, n]));
   }
 
   // ---------------- FIREBASE ----------------
@@ -69,6 +72,7 @@ class Store {
     ]);
     this.fb = { auth, fs };
     const app = initializeApp(firebaseConfig);
+    this.app = app;
     this.auth = auth.getAuth(app);
     this.db = fs.getFirestore(app);
 
@@ -79,6 +83,14 @@ class Store {
       this.persons = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
       gotPersons = true; maybeReady(); if (this.ready) this.emit('persons');
     }, err => this._err(err));
+    fs.onSnapshot(fs.collection(this.db, 'news'), snap => {
+      this.news = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+      if (this.ready) this.emit('news');
+    }, err => console.warn('news', err));
+    fs.onSnapshot(fs.query(fs.collection(this.db, 'notices'), fs.orderBy('createdAt', 'desc'), fs.limit(10)), snap => {
+      this.notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (this.ready) this.emit('notices');
+    }, err => console.warn('notices', err));
     fs.onSnapshot(fs.doc(this.db, 'meta', 'clan'), snap => {
       this.clan = snap.exists() ? snap.data() : {};
       gotClan = true; maybeReady(); if (this.ready) this.emit('clan');
@@ -233,7 +245,8 @@ class Store {
       exportedAt: new Date().toISOString(),
       clan: this.clan,
       persons: [...this.persons.values()],
-      contacts: Object.fromEntries(this.contacts)
+      contacts: Object.fromEntries(this.contacts),
+      news: [...this.news.values()]
     };
   }
 
@@ -265,6 +278,48 @@ class Store {
     }
     if (data.clan) await this.saveClan(data.clan);
     await this.autoMember(Object.values(data.contacts || {}).map(c => c.email));
+  }
+
+  // ---------------- TIN TỨC ----------------
+  async saveNews(item) {
+    const id = item.id || uid().replace(/^p/, 'n');
+    const old = this.news.get(id);
+    const data = {
+      ...item, id,
+      createdAt: old?.createdAt || item.createdAt || Date.now(), updatedAt: Date.now(),
+      author: old?.author || this.user?.name || this.user?.email || '', authorEmail: old?.authorEmail || this.user?.email || ''
+    };
+    if (JSON.stringify(data).length > 950000) throw new Error('Bài viết quá lớn (ảnh nhiều/quá to). Hãy bớt ảnh trong bài.');
+    if (this.mode === 'demo') { this.news.set(id, data); this._saveDemo(); this.emit('news'); return id; }
+    const { fs } = this.fb;
+    try { await fs.setDoc(fs.doc(this.db, 'news', id), clean(data)); } catch (e) { this._err(e); throw e; }
+    return id;
+  }
+  async deleteNews(id) {
+    if (this.mode === 'demo') { this.news.delete(id); this._saveDemo(); this.emit('news'); return; }
+    const { fs } = this.fb;
+    try { await fs.deleteDoc(fs.doc(this.db, 'news', id)); } catch (e) { this._err(e); throw e; }
+  }
+
+  // ---------------- THÔNG BÁO (PUSH) ----------------
+  /** Quản trị gửi thông báo: lưu vào hàng đợi, GitHub Action sẽ đẩy đến các máy đã bật thông báo */
+  async sendNotice({ title, body, hash }) {
+    const n = { title, body, hash: hash || '#/', createdAt: Date.now(), sent: false, by: this.user?.email || '' };
+    if (this.mode === 'demo') {
+      this.notices = [{ id: uid(), ...n, sent: true, sentCount: 0, demo: true }, ...this.notices].slice(0, 10);
+      this.emit('notices'); return;
+    }
+    const { fs } = this.fb;
+    try { await fs.addDoc(fs.collection(this.db, 'notices'), n); } catch (e) { this._err(e); throw e; }
+  }
+  async savePushToken(token, prefs) {
+    if (this.mode !== 'firebase' || !token) return;
+    const { fs } = this.fb;
+    const ua = navigator.userAgent;
+    const platform = /iphone|ipad|ipod/i.test(ua) ? 'ios' : /android/i.test(ua) ? 'android' : 'desktop';
+    try {
+      await fs.setDoc(fs.doc(this.db, 'pushTokens', token), clean({ token, platform, prefs, updatedAt: Date.now(), email: this.user?.email || '' }));
+    } catch (e) { console.warn('pushToken', e); }
   }
 
   resetDemo() {

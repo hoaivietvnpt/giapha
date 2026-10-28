@@ -5,6 +5,10 @@ import { store } from './store.js';
 
 const LS = 'gp-remind';
 const LS_PREFS = 'gp-remind-prefs';
+const LS_TOKEN = 'gp-push-token';
+// Khoá công khai Web Push (Firebase Console → Cloud Messaging → Web Push certificates)
+export const VAPID_KEY = 'BIEtuavXcOcOJd7omAUaGk0rtcTVvtUZmC_pr7U8KWHEoqkjS--4h-SSEQ4XXWUt_2GexDVN_vP-AQerrJuepeo';
+const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 export const DAY_OPTIONS = [30, 7, 3];
 let installEvt = null;
 const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } } };
@@ -22,6 +26,7 @@ export function getPrefs() {
 }
 async function savePrefs(prefs) {
   ls.set(LS_PREFS, JSON.stringify(prefs));
+  const tok = ls.get(LS_TOKEN); if (tok) store.savePushToken(tok, prefs);
   try {
     const c = await caches.open('gp-data');
     await c.put('settings.json', new Response(JSON.stringify(prefs), { headers: { 'Content-Type': 'application/json' } }));
@@ -39,6 +44,22 @@ export function initPWA() {
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; refreshCard(); });
   window.addEventListener('appinstalled', () => { installEvt = null; toast('Đã cài ứng dụng Gia phả'); refreshCard(); });
   navigator.serviceWorker.addEventListener?.('message', (e) => { if (e.data?.type === 'open') location.hash = e.data.hash; });
+  // làm mới mã nhận thông báo mỗi lần mở app
+  if (remindersOn()) store.on((w) => { if (w === 'all' && !initPWA.done) { initPWA.done = true; enablePush(true); } });
+}
+
+/** Lời mời bật thông báo trên trang chủ (khi chưa bật) */
+export function pushCTA() {
+  if (!supported() || remindersOn() || Notification.permission === 'denied' || ls.get('gp-cta-x') === '1') return '';
+  return `<section class="push-cta" id="pushCta">
+    <img src="icons/icon-192.png" alt="" width="44" height="44">
+    <div><b>Nhận thông báo từ dòng họ</b><p class="muted">Tin họp họ, giỗ tổ và nhắc ngày giỗ ngay trên điện thoại.${isIOS() && !isStandalone() ? ' Trên iPhone: cài ứng dụng trước (Chia sẻ → Thêm vào MH chính).' : ''}</p></div>
+    <div class="actions"><button class="btn primary small" id="ctaOn">Bật thông báo</button><button class="btn ghost small" id="ctaX">Để sau</button></div>
+  </section>`;
+}
+export function bindPushCTA() {
+  $('#ctaOn')?.addEventListener('click', async () => { await enableReminders(); if (remindersOn()) $('#pushCta')?.remove(); });
+  $('#ctaX')?.addEventListener('click', () => { ls.set('gp-cta-x', '1'); $('#pushCta')?.remove(); });
 }
 
 /** Tính trước ngày giỗ (dương lịch) cho 2 năm tới, lưu cho service worker dùng khi chạy nền */
@@ -57,7 +78,9 @@ export async function syncReminders(persons, clanName) {
   }
   try {
     const c = await caches.open('gp-data');
-    await c.put('settings.json', new Response(JSON.stringify(getPrefs()), { headers: { 'Content-Type': 'application/json' } }));
+    // Khi máy chủ đã gửi nhắc giỗ (push) thì máy không tự nhắc nữa để khỏi trùng
+    const serverPush = !!(store.clan?.pushReady && ls.get(LS_TOKEN));
+    await c.put('settings.json', new Response(JSON.stringify({ ...getPrefs(), serverPush }), { headers: { 'Content-Type': 'application/json' } }));
     await c.put('gio.json', new Response(JSON.stringify({ clan: clanName || '', items, updated: Date.now() }), { headers: { 'Content-Type': 'application/json' } }));
     if (remindersOn()) (await navigator.serviceWorker.ready).active?.postMessage({ type: 'check' });
   } catch (e) { console.warn(e); }
@@ -74,6 +97,21 @@ async function registerPeriodic() {
   } catch { return false; }
 }
 
+/** Đăng ký nhận push (Firebase Cloud Messaging) – dùng cho thông báo của quản trị và nhắc giỗ từ máy chủ */
+export async function enablePush(silent) {
+  if (store.mode !== 'firebase' || !VAPID_KEY || !supported() || Notification.permission !== 'granted') return false;
+  try {
+    const m = await import(FB + 'firebase-messaging.js');
+    if (!(await m.isSupported())) return false;
+    const reg = await navigator.serviceWorker.ready;
+    const token = await m.getToken(m.getMessaging(store.app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if (!token) return false;
+    if (token !== ls.get(LS_TOKEN) || !silent) await store.savePushToken(token, getPrefs());
+    ls.set(LS_TOKEN, token);
+    return true;
+  } catch (e) { console.warn('push', e); return false; }
+}
+
 export async function enableReminders() {
   if (!supported()) return toast('Trình duyệt này không hỗ trợ thông báo');
   if (isIOS() && !isStandalone()) return toast('Trên iPhone: hãy “Thêm vào MH chính” rồi mở ứng dụng từ biểu tượng để bật thông báo');
@@ -81,6 +119,7 @@ export async function enableReminders() {
   if (p !== 'granted') { toast('Bạn chưa cho phép thông báo'); refreshCard(); return; }
   ls.set(LS, 'on');
   await registerPeriodic();
+  await enablePush();
   (await navigator.serviceWorker.ready).active?.postMessage({ type: 'check', force: true });
   toast(`Đã bật nhắc ngày giỗ (${prefsText(getPrefs())})`);
   refreshCard();
@@ -186,7 +225,7 @@ export function refreshCard() {
       ${perm === 'unsupported' ? '<p class="muted tiny">Trình duyệt này không hỗ trợ thông báo – hãy dùng file lịch (.ics) ở trên.</p>'
         : perm === 'denied' ? '<p class="note err">Thông báo đang bị chặn. Hãy mở cài đặt trang web trong trình duyệt để cho phép lại.</p>'
           : on ? `<span class="badge alive">Đang bật nhắc giỗ</span><button class="btn small ghost" id="remOff">Tắt</button><button class="btn small" id="remTest">Thử thông báo</button>`
-            : '<button class="btn primary" id="remOn">Bật nhắc ngày giỗ</button>'}
+            : '<button class="btn primary" id="remOn">Bật thông báo & nhắc giỗ</button>'}
     </div>
     <fieldset class="rem-prefs"><legend>Thời điểm nhắc</legend>
       <div class="chips-row">

@@ -6,16 +6,18 @@ import { todayLunar, canChiYear, gioInLunarYear } from './lunar.js';
 import { TreeView } from './tree.js';
 import { renderPersonDetail, openPersonForm, openPerson, closePerson, personLink } from './person.js';
 import { openSheetImport, exportCSV } from './sheet-import.js';
-import { initPWA, syncReminders, reminderCard, refreshCard, downloadICS } from './notify.js';
+import { initPWA, syncReminders, reminderCard, refreshCard, downloadICS, pushCTA, bindPushCTA } from './notify.js';
+import { pageNews, newsHomeHTML, isEditing, stopEditing } from './news.js';
 
 store.toast = toast;
 let currentPage = null;
+let currentKey = null;
 let tree = null;
 const treeOpts = { rootId: '', hideOutside: false };
 const listState = { q: '', gen: '', gender: '', status: '', branch: '' };
 let gioRange = 60;
 let syncT;
-const PAGE_TITLE = { home: '', tree: 'Cây gia phả', list: 'Thành viên', gio: 'Lịch ngày giỗ', admin: 'Quản trị' };
+const PAGE_TITLE = { home: '', tree: 'Cây gia phả', list: 'Thành viên', gio: 'Lịch ngày giỗ', news: 'Tin tức', admin: 'Quản trị' };
 initPWA();
 function pageTitle(pg) {
   const base = store.clan.name ? `Gia phả ${store.clan.name}` : 'Gia Phả Dòng Họ';
@@ -30,6 +32,8 @@ store.on((what) => {
     clearTimeout(syncT); syncT = setTimeout(() => syncReminders(store.persons, store.clan.name), 800);
   }
   renderChrome();
+  if (isEditing() && what !== 'auth') return; // đang soạn bài: không vẽ lại trang
+  if (what === 'notices' && currentPage !== 'home' && currentPage !== 'admin') return;
   if (what === 'contacts') return route(false);
   if (what === 'persons' && currentPage === 'tree' && tree) { drawTree(false); return route(false); }
   route(true);
@@ -38,20 +42,24 @@ window.addEventListener('hashchange', () => route(false));
 function parseHash() {
   const [path, qs] = (location.hash.slice(1) || '/').split('?');
   const params = new URLSearchParams(qs || '');
-  return { page: path.replace(/^\//, '') || 'home', p: params.get('p') };
+  const [page, ...rest] = path.replace(/^\//, '').split('/');
+  return { page: page || 'home', sub: rest.join('/'), p: params.get('p') };
 }
 
 function route(force) {
   if (!store.ready) return;
-  const { page, p } = parseHash();
+  const { page, sub, p } = parseHash();
   const pg = PAGES[page] ? page : 'home';
-  if (force || pg !== currentPage) {
-    currentPage = pg;
+  const key = pg + '/' + sub;
+  if (force || key !== currentKey) {
+    if (pg !== 'news' || !sub.startsWith('edit')) stopEditing();
+    currentPage = pg; currentKey = key;
     $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.page === pg));
     if (pg !== 'tree') { tree = null; }
     document.body.dataset.page = pg;
     document.title = pageTitle(pg);
-    PAGES[pg]();
+    PAGES[pg](sub);
+    if (!p) window.scrollTo(0, 0);
   } else if (pg === 'tree' && tree) {
     drawTree(false);
   }
@@ -83,7 +91,13 @@ function renderChrome() {
   $('#bannerX').onclick = () => { try { sessionStorage.setItem('gp-banner', '1'); } catch { /* bỏ qua */ } $('#demoBanner').classList.add('hidden'); };
   $('#navAdmin').classList.toggle('hidden', !store.canEdit);
   const a = $('#auth');
-  if (store.mode === 'demo') { a.innerHTML = `<span class="role-pill">Dùng thử</span>`; return; }
+  if (store.mode === 'demo') {
+    a.innerHTML = `<button class="user-btn" id="userBtn"><span class="role-pill">Dùng thử</span></button>`;
+    $('#userBtn').onclick = () => openModal(`<div class="modal-card small"><h2>Chế độ dùng thử</h2>
+      <p class="muted">Dữ liệu chỉ lưu trên trình duyệt này.</p>
+      <div class="actions"><button class="btn ghost" data-close>Đóng</button><a class="btn primary" href="#/admin" data-close>Vào trang Quản trị</a></div></div>`);
+    return;
+  }
   if (!store.user) {
     a.innerHTML = `<button class="btn small primary" id="loginBtn">Đăng nhập</button>`;
     $('#loginBtn').onclick = () => store.signIn();
@@ -96,7 +110,7 @@ function renderChrome() {
     <h2>${esc(store.user.name || '')}</h2><p class="muted">${esc(store.user.email)}</p>
     <p>Quyền: <b>${roleName}</b></p>
     ${store.role === 'viewer' ? '<p class="muted note">Bạn đang có quyền xem. Nhờ quản trị viên dòng họ thêm email của bạn để xem liên hệ hoặc cập nhật gia phả.</p>' : ''}
-    <div class="actions"><button class="btn ghost" data-close>Đóng</button><button class="btn danger" id="logoutBtn">Đăng xuất</button></div></div>`,
+    <div class="actions"><button class="btn ghost" data-close>Đóng</button>${store.canEdit ? '<a class="btn" href="#/admin" data-close>Quản trị</a>' : ''}<button class="btn danger" id="logoutBtn">Đăng xuất</button></div></div>`,
     m => { $('#logoutBtn', m).onclick = () => { store.signOut(); closeModal(); }; });
 }
 
@@ -134,6 +148,10 @@ function pageHome() {
   ${total === 0 ? `<div class="empty card"><h2>Gia phả còn trống</h2><p>Bắt đầu bằng cách thêm vị thủy tổ (người cao nhất mà dòng họ biết).</p>
     ${store.canEdit ? `<div class="actions" style="justify-content:center"><button class="btn primary" id="addFirst">${icon.plus} Thêm thủy tổ</button><button class="btn" id="sheetFirst">Nhập từ Google Sheet</button></div>` : store.mode === 'firebase' && !store.user ? '<p class="muted">Đăng nhập để bắt đầu.</p>' : ''}</div>` : ''}
 
+  ${noticeHTML()}
+  ${pushCTA()}
+  ${newsHomeHTML()}
+
   <div class="home-grid">
     <section class="card">
       <div class="card-h"><h2>Ngày giỗ sắp tới</h2><a href="#/gio">Xem tất cả</a></div>
@@ -149,6 +167,20 @@ function pageHome() {
   </div>`;
   $('#addFirst')?.addEventListener('click', () => openPersonForm(null, { alive: false }, 'Thêm thủy tổ'));
   $('#sheetFirst')?.addEventListener('click', openSheetImport);
+  bindPushCTA();
+  $('#noticeX')?.addEventListener('click', (e) => { try { localStorage.setItem('gp-notice-seen', e.currentTarget.dataset.id); } catch { /* bỏ qua */ } $('#noticeBox').remove(); });
+}
+
+/** Thông báo mới nhất từ quản trị (hiện trên trang chủ trong 14 ngày) */
+function noticeHTML() {
+  const n = store.notices[0];
+  if (!n || Date.now() - n.createdAt > 14 * 86400000) return '';
+  let seen = ''; try { seen = localStorage.getItem('gp-notice-seen'); } catch { /* bỏ qua */ }
+  if (seen === n.id) return '';
+  return `<section class="notice-box" id="noticeBox"><div class="gio-ic">${icon.share}</div>
+    <div><small>Thông báo từ dòng họ · ${new Date(n.createdAt).toLocaleDateString('vi-VN')}</small><b>${esc(n.title)}</b>${n.body ? `<p class="muted">${esc(n.body)}</p>` : ''}
+    ${n.hash && n.hash !== '#/' ? `<a class="btn small" href="${esc(n.hash)}">Xem chi tiết</a>` : ''}</div>
+    <button class="icon-btn" id="noticeX" data-id="${esc(n.id)}" aria-label="Ẩn thông báo">${icon.close}</button></section>`;
 }
 
 function gioItem(g) {
@@ -337,6 +369,21 @@ function pageAdmin() {
       ${store.isOwner ? '<div class="actions"><button class="btn primary">Lưu phân quyền</button></div>' : '<p class="muted note">Chỉ quản trị viên mới đổi được phân quyền.</p>'}
     </form>` : ''}
 
+    ${store.isOwner || store.mode === 'demo' ? `<form class="card" id="noticeForm">
+      <h2>Gửi thông báo đến mọi người</h2>
+      <p class="muted">Thông báo được đẩy đến điện thoại của những người đã cài ứng dụng và bật thông báo, đồng thời hiện trên trang chủ 14 ngày. Thường đến trong vòng 5–15 phút.</p>
+      <label>Tiêu đề *<input name="title" required maxlength="80" placeholder="VD: Họp họ chuẩn bị giỗ tổ"></label>
+      <label>Nội dung<textarea name="body" rows="3" maxlength="300" placeholder="VD: 8h sáng Chủ nhật 15/11 tại nhà thờ họ…"></textarea></label>
+      <label>Khi bấm vào thông báo thì mở<select name="hash">
+        <option value="#/">Trang chủ</option><option value="#/news">Tin tức</option><option value="#/gio">Lịch ngày giỗ</option><option value="#/tree">Cây gia phả</option>
+        ${[...store.news.values()].filter(x => x.published !== false).sort((x, y) => y.createdAt - x.createdAt).slice(0, 10).map(x => `<option value="#/news/${esc(x.id)}">Bài: ${esc(x.title.slice(0, 60))}</option>`).join('')}
+      </select></label>
+      <div class="actions"><button class="btn primary">Gửi thông báo</button></div>
+      ${store.notices.length ? `<div class="sx-table"><table><thead><tr><th>Thông báo</th><th>Lúc</th><th>Trạng thái</th></tr></thead><tbody>
+        ${store.notices.map(x => `<tr><td>${esc(x.title)}</td><td>${new Date(x.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${x.sent ? `Đã gửi ${x.sentCount ?? ''} máy` : 'Đang chờ gửi…'}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+    </form>` : ''}
+
     <div class="card">
       <h2>Google Sheet</h2>
       <p class="muted">Nhập cả gia phả từ một Google Sheet theo mẫu – tiện khi nhiều người cùng điền hoặc đã có sẵn danh sách. Có thể nhập lại nhiều lần để cập nhật.</p>
@@ -375,6 +422,13 @@ function pageAdmin() {
     }
     await store.saveAccess(data); toast('Đã lưu phân quyền');
   });
+  $('#noticeForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    if (!await confirmBox(`Gửi thông báo “${esc(f.title.value)}” đến mọi người?`, 'Gửi')) return;
+    try { await store.sendNotice({ title: f.title.value.trim(), body: f.body.value.trim(), hash: f.hash.value }); toast('Đã xếp lịch gửi – điện thoại sẽ nhận trong vài phút'); }
+    catch { /* lỗi đã báo */ }
+  });
   $('#sheetBtn').onclick = openSheetImport;
   $('#csvBtn').onclick = exportCSV;
   $('#expBtn').onclick = () => {
@@ -400,7 +454,7 @@ function pageAdmin() {
   };
 }
 
-const PAGES = { home: pageHome, tree: pageTree, list: pageList, gio: pageGio, admin: pageAdmin };
+const PAGES = { home: pageHome, tree: pageTree, list: pageList, gio: pageGio, news: pageNews, admin: pageAdmin };
 
 store.init().catch(e => {
   console.error(e);

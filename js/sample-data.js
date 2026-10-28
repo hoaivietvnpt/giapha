@@ -45,6 +45,11 @@ export const SAMPLE = {
     { id: 'p25', name: 'Nguyễn Gia Bảo', gender: 'm', fatherId: 'p21', motherId: 'p22', order: 1, birth: '2015', alive: true, branch: 'Chi trưởng' },
     { id: 'p26', name: 'Nguyễn Khánh An', gender: 'f', fatherId: 'p21', motherId: 'p22', order: 2, birth: '2018', alive: true }
   ],
+  news: [
+    { id: 'n1', title: 'Thông báo giỗ tổ năm Bính Ngọ', pinned: true, published: true, createdAt: Date.now() - 3 * 86400000, author: 'Ban liên lạc họ',
+      summary: 'Lễ giỗ tổ tổ chức ngày 10 tháng Giêng tại nhà thờ họ. Kính mời toàn thể con cháu về dự.',
+      content: '<h2>Thời gian & địa điểm</h2><p><strong>8 giờ sáng ngày 10 tháng Giêng</strong> (âm lịch) tại nhà thờ họ, xóm Đình, thôn Yên Lộ.</p><h2>Chương trình</h2><ol><li>Dâng hương tưởng niệm thủy tổ</li><li>Báo cáo hoạt động của dòng họ trong năm</li><li>Trao thưởng khuyến học cho con cháu</li><li>Liên hoan thân mật</li></ol><blockquote>Uống nước nhớ nguồn – mong con cháu gần xa thu xếp về dự đông đủ.</blockquote><p>Mọi đóng góp xin liên hệ trưởng họ. <em>(Dữ liệu mẫu)</em></p>' }
+  ],
   contacts: {
     p13: { phone: '0900 000 013', address: 'Thôn Yên Lộ (dữ liệu mẫu)' },
     p15: { phone: '0900 000 015', zalo: '0900000015', facebook: 'https://facebook.com/', address: 'Thôn Yên Lộ (dữ liệu mẫu)' },
