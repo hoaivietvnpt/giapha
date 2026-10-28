@@ -59,7 +59,7 @@ class Store {
   _loadAll(data) {
     this.persons = new Map((data.persons || []).map(p => [p.id, p]));
     this.contacts = new Map(Object.entries(data.contacts || {}));
-    this.clan = data.clan || {};
+    this.clan = data.clan || this.clan || {};
   }
 
   // ---------------- FIREBASE ----------------
