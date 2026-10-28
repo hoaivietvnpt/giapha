@@ -336,3 +336,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold); outl
 @media print {
   .topbar, .banner, .tree-bar, .zoom, .legend, .drawer, .scrim, .nav { display: none !important; }
 }
+
+/* Nhập Google Sheet */
+.steps { padding-left: 20px; margin: 8px 0; display: grid; gap: 14px; }
+.steps li { padding-left: 4px; }
+.steps .actions { margin-top: 8px; }
+.steps .inline { margin-top: 6px; }
+.steps .inline input { font-size: 14px; }
+.linkish { display: inline; color: var(--red-2); text-decoration: underline; cursor: pointer; font-size: inherit; }
+.note.err { background: #fbe4e1; color: #8a1f14; }
+.note.warn { background: #fdf1d6; color: #6a4e12; }
+.note.warn ul { margin: 6px 0 0; padding-left: 18px; max-height: 160px; overflow: auto; }
+.note.ok { background: #e3f1e8; color: var(--ok); }
+.sx-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.sx-stats span { background: var(--paper); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-size: 13px; }
+.sx-stats b { color: var(--red); }
+.sx-table { overflow-x: auto; margin: 10px 0; }
+.sx-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.sx-table th, .sx-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sx-table th { color: var(--muted); font-weight: 600; background: var(--paper); }
