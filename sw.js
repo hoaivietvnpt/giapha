@@ -1,5 +1,5 @@
 // Service worker: chạy ngoại tuyến + nhắc ngày giỗ
-const VERSION = 'gp-v3';
+const VERSION = 'gp-v4';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png',
   'js/app.js', 'js/store.js', 'js/ui.js', 'js/family.js', 'js/lunar.js', 'js/tree.js', 'js/person.js',
   'js/sheet-import.js', 'js/notify.js', 'js/news.js', 'js/firebase-config.js', 'js/sample-data.js'];

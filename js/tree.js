@@ -16,14 +16,14 @@ export const TREE_STYLE = `
 .tc.sel rect.card{stroke:var(--primary,#9f1d1d);stroke-width:2.6}
 .tc.hit rect.card{stroke:var(--gold,#a16207);stroke-width:3}
 .tc text{font-family:'Be Vietnam Pro',system-ui,sans-serif;fill:var(--tc-text,#1c1917)}
-.tc .nm{font-size:13px;font-weight:600}.tc .sub{font-size:11px;fill:var(--tc-sub,#6b645c)}
+.tc .nm{font-size:13.5px;font-weight:600}.tc .sub{font-size:11.5px;fill:var(--tc-sub,#6b645c)}
 .tc .av{fill:var(--sunken,#f0ece4)}.tc.m .av{fill:var(--male-soft,#e3ecf7)}.tc.f .av{fill:var(--female-soft,#fbe4ee)}
 .tc .avt{font-size:15px;font-weight:700;fill:var(--tc-sub,#6b645c);text-anchor:middle}
 .tc.m .avt{fill:var(--male,#2b5c9e)}.tc.f .avt{fill:var(--female,#b4235a)}
 .tc .rib{fill:var(--dead,#3f3a36)}
 .edge{fill:none;stroke:var(--tc-edge,#b3a796);stroke-width:1.4}
 .couple{stroke:var(--primary,#9f1d1d);stroke-width:1.6}
-.tg circle{fill:var(--tc-card,#fff);stroke:var(--tc-edge,#b3a796)}.tg text{font-size:13px;font-weight:700;fill:var(--primary,#9f1d1d);text-anchor:middle;font-family:sans-serif}
+.tg circle{fill:var(--tc-card,#fff);stroke:var(--tc-edge,#b3a796)}.tg text{font-size:13px;font-weight:700;fill:var(--primary,#9f1d1d);text-anchor:middle;font-family:'Be Vietnam Pro',system-ui,sans-serif}
 .genl{font-family:'Noto Serif',serif;font-size:13px;font-weight:700;fill:var(--tc-gen,#9f1d1d)}
 .genband{fill:var(--tc-band,rgba(159,29,29,.035))}
 `;
@@ -147,17 +147,19 @@ export class TreeView {
   // ---------- Điều khiển khung nhìn ----------
   _apply() { this.vp.setAttribute('transform', `translate(${this.t.x},${this.t.y}) scale(${this.t.k})`); }
 
-  fit() {
+  /** readable: không thu nhỏ quá mức đọc được tên (dùng khi mới mở cây); bỏ qua thì thu cả cây vào màn hình */
+  fit(readable = false) {
     const r = this.host.getBoundingClientRect();
     const w = this.width + PAD * 2, h = this.height + PAD * 2;
-    const minK = r.width < 700 ? 0.5 : 0.25;
+    const minK = readable ? 0.8 : r.width < 700 ? 0.3 : 0.2;
     const k = Math.min(1.2, Math.max(minK, Math.min(r.width / w, r.height / h)));
-    this.t = { k, x: (r.width - this.width * k) / 2, y: Math.max(PAD * k, (r.height - this.height * k) / 2) };
+    // bám mép trên để Đời 1 luôn ở đầu khung nhìn
+    this.t = { k, x: (r.width - this.width * k) / 2, y: (PAD + VG / 2) * k };
     if (this.width * k > r.width && this.flat?.length) {
       // cây rộng hơn màn hình: căn giữa vào thủy tổ, bám mép trên
       const root = this.flat[0];
       this.t.x = r.width / 2 - (root.x + root.uw / 2) * k;
-      this.t.y = PAD * k + 10;
+      this.t.y = (PAD + VG / 2) * k;
     }
     this._apply();
   }
@@ -261,7 +263,7 @@ export class TreeView {
     const w = this.width + PAD * 2, h = this.height + PAD * 2 + 50;
     const title = esc(this.opts.title || 'Gia phả');
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${-PAD} ${-PAD - 50} ${w} ${h}">
-<style>${TREE_STYLE}</style><rect x="${-PAD}" y="${-PAD - 50}" width="${w}" height="${h}" fill="#f7f5f0"/>
+<style>${TREE_STYLE}</style><rect x="${-PAD}" y="${-PAD - 50}" width="${w}" height="${h}" fill="#f1f0ed"/>
 <text x="${this.width / 2}" y="-38" text-anchor="middle" style="font-family:'Noto Serif',serif;font-size:26px;font-weight:700;fill:#9f1d1d">${title}</text>
 ${this.vp.innerHTML.replace(/<g class="tg"[\s\S]*?<\/g>/g, '')}</svg>`;
   }

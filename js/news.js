@@ -85,7 +85,7 @@ export function pageNews(sub) {
   $('#view').innerHTML = `<div class="page">
     <div class="page-h"><h1>Tin tức dòng họ</h1>${store.canEdit ? `<a class="btn primary" href="#/news/edit/new">${icon.plus} Viết bài mới</a>` : ''}</div>
     <p class="muted">Thông báo họp họ, giỗ tổ, khuyến học, việc hiếu hỉ và các tin vui của con cháu.</p>
-    ${list.length ? `<div class="news-grid">${list.map(card).join('')}</div>` : '<div class="empty card"><p>Chưa có bài viết nào.</p></div>'}
+    ${list.length ? `<div class="news-grid">${list.map(card).join('')}</div>` : `<div class="empty card"><h2>Chưa có bài viết nào</h2><p>Thông báo họp họ, giỗ tổ và tin của con cháu sẽ hiện ở đây.</p>${store.canEdit ? `<a class="btn primary" href="#/news/edit/new">${icon.plus} Viết bài đầu tiên</a>` : ''}</div>`}
   </div>`;
 }
 

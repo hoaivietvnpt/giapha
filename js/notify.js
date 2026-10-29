@@ -227,12 +227,11 @@ export function refreshCard() {
           : on ? `<span class="badge alive">Đang bật nhắc giỗ</span><button class="btn small ghost" id="remOff">Tắt</button><button class="btn small" id="remTest">Thử thông báo</button>`
             : '<button class="btn primary" id="remOn">Bật thông báo & nhắc giỗ</button>'}
     </div>
-    <fieldset class="rem-prefs"><legend>Thời điểm nhắc</legend>
+    <fieldset class="rem-prefs"><legend>Nhắc lúc 8:00 sáng</legend>
       <div class="chips-row">
         ${DAY_OPTIONS.map(d => `<label class="pick"><input type="checkbox" data-day="${d}" ${prefs.days.includes(d) ? 'checked' : ''}><span>Trước ${d} ngày</span></label>`).join('')}
-        <label class="pick"><input type="checkbox" id="dayOf" ${prefs.dayOf ? 'checked' : ''}><span>8:00 đúng ngày giỗ</span></label>
+        <label class="pick"><input type="checkbox" id="dayOf" ${prefs.dayOf ? 'checked' : ''}><span>Đúng ngày giỗ</span></label>
       </div>
-      <p class="muted tiny">Áp dụng cho cả thông báo của ứng dụng và file lịch (.ics). Các lời nhắc trước đều báo lúc 8:00 sáng.</p>
     </fieldset>
     <details class="ios-guide" ${isIOS() ? 'open' : ''}><summary>Thêm nhắc giỗ vào Lịch trên iPhone</summary>
       <ol>
@@ -242,9 +241,8 @@ export function refreshCard() {
         <li>Kiểm tra <b>Cài đặt → Thông báo → Lịch</b> đang bật để iPhone báo đúng giờ.</li>
         <li>Khi gia phả có thêm người hoặc muốn đổi mốc nhắc: xoá lịch “Ngày giỗ” cũ trong ứng dụng Lịch rồi thêm lại file mới để không bị trùng.</li>
       </ol>
-      <p class="muted tiny">Lịch của iPhone tự nhắc cả khi không mở web, kể cả khi không có mạng. Lịch được tính sẵn cho 10 năm tới.</p>
-    </details>
-    <p class="muted tiny">Thông báo của ứng dụng: Android (Chrome, đã cài) có thể tự kiểm tra khi chạy nền; iPhone kiểm tra mỗi khi mở ứng dụng. Cách chắc chắn nhất là thêm file lịch (.ics).</p>`;
+      <p class="muted">Lịch của iPhone tự nhắc cả khi không mở web, kể cả khi không có mạng, và được tính sẵn cho 10 năm tới. Thông báo của ứng dụng thì Android kiểm tra cả khi chạy nền, iPhone chỉ kiểm tra mỗi khi mở ứng dụng.</p>
+    </details>`;
   $('#installBtn', el)?.addEventListener('click', async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; refreshCard(); });
   $('#remOn', el)?.addEventListener('click', enableReminders);
   $('#icsBtn2', el)?.addEventListener('click', () => downloadICS(store.persons.values(), store.clan.name));

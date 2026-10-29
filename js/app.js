@@ -84,7 +84,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#drawer
 function renderChrome() {
   const c = store.clan;
   $('#brandTitle').textContent = c.name ? `Gia phả ${c.name}` : 'Gia Phả Dòng Họ';
-  $('#brandSub').textContent = c.origin || 'Uống nước nhớ nguồn';
+  $('#brandSub').textContent = c.origin || c.motto || 'Uống nước nhớ nguồn';
   document.title = pageTitle(currentPage);
   let dismissed = false; try { dismissed = sessionStorage.getItem('gp-banner') === '1'; } catch { /* bỏ qua */ }
   $('#demoBanner').classList.toggle('hidden', store.mode !== 'demo' || dismissed);
@@ -125,24 +125,22 @@ function pageHome() {
   const lt = todayLunar();
   const t = new Date();
 
-  $('#view').innerHTML = `
-  <section class="hero">
-    <div class="hero-inner">
-      <p class="eyebrow">${esc(c.motto || 'Uống nước nhớ nguồn')}</p>
-      <h1>${esc(c.fullName || (c.name ? 'Gia phả ' + c.name : 'Gia phả dòng họ'))}</h1>
-      ${c.origin ? `<p class="hero-meta">${icon.map} Quê gốc: ${esc(c.origin)}</p>` : ''}
-      ${c.hall ? `<p class="hero-meta">${icon.home} ${esc(c.hall)}</p>` : ''}
-      <div class="hero-cta"><a class="btn primary" href="#/tree">${icon.tree} Xem cây gia phả</a><a class="btn light" href="#/gio">${icon.incense} Lịch ngày giỗ</a></div>
-    </div>
-    <div class="today"><small>Hôm nay</small><b>${fmtSolar(t)}</b><span>${lunarText({ d: lt.d, m: lt.m, leap: lt.leap })}, năm ${canChiYear(lt.y)}</span></div>
-  </section>
+  const title = c.fullName || (c.name ? 'Gia phả ' + c.name : 'Gia phả dòng họ');
+  const lead = total
+    ? `${total} người qua ${idx.maxGen} đời${root ? `, từ thủy tổ ${esc(root.name)}${yearOf(root.birth) ? ` (${esc(lifespan(root)).replace(/ – /g, '\u00a0–\u00a0')})` : ''}` : ''}. ${alive} người đang sống, ${blood} người mang huyết thống.`
+    : 'Cây phả hệ, ngày giỗ âm lịch và phần mộ của dòng họ, để con cháu cùng xem và cập nhật.';
 
-  <section class="stats">
-    <div class="stat"><b>${total}</b><span>Thành viên</span></div>
-    <div class="stat"><b>${idx.maxGen}</b><span>Thế hệ</span></div>
-    <div class="stat"><b>${blood}</b><span>Huyết thống</span></div>
-    <div class="stat"><b>${alive}</b><span>Còn sống</span></div>
-    <div class="stat"><b>${total - alive}</b><span>Đã khuất</span></div>
+  $('#view').innerHTML = `
+  <section class="home-hero">
+    <div class="hh-text">
+      <h1 class="${title.length > 24 ? 'long' : ''}">${esc(title)}</h1>
+      <p class="hh-lead">${lead}</p>
+      ${c.origin || c.hall ? `<p class="hero-meta">${c.origin ? `${icon.map} Quê gốc ${esc(c.origin)}` : ''}${c.origin && c.hall ? '<span aria-hidden="true">·</span>' : ''}${c.hall ? esc(c.hall) : ''}</p>` : ''}
+      <div class="hero-cta"><a class="btn primary" href="#/tree">${icon.tree} Xem cây gia phả</a><a class="btn" href="#/gio">${icon.incense} Lịch ngày giỗ</a></div>
+      ${c.motto ? `<p class="hh-motto">${esc(c.motto)}</p>` : ''}
+      <p class="hh-today">Hôm nay ${fmtSolar(t)}, nhằm ${lunarText({ d: lt.d, m: lt.m, leap: lt.leap }).replace(/^N/, 'n')} năm ${canChiYear(lt.y)}</p>
+    </div>
+    ${root ? lineageHTML(root) : ''}
   </section>
 
   ${total === 0 ? `<div class="empty card"><h2>Gia phả còn trống</h2><p>Bắt đầu bằng cách thêm vị thủy tổ (người cao nhất mà dòng họ biết).</p>
@@ -152,23 +150,38 @@ function pageHome() {
   ${pushCTA()}
   ${newsHomeHTML()}
 
-  <div class="home-grid">
-    <section class="card">
+  <div class="home-grid ${c.intro ? '' : 'solo'}">
+    <section class="home-gio">
       <div class="card-h"><h2>Ngày giỗ sắp tới</h2><a href="#/gio">Xem tất cả</a></div>
-      ${gios.length ? `<ul class="gio-list compact">${gios.map(gioItem).join('')}</ul>` : '<p class="muted">Chưa có ngày giỗ nào được nhập.</p>'}
+      ${gios.length ? `<ul class="gio-list">${gios.map(gioItem).join('')}</ul>` : '<p class="muted">Chưa có ngày giỗ nào được nhập.</p>'}
     </section>
-    <section class="card">
-      ${root ? `<div class="card-h"><h2>Thủy tổ</h2></div>
-      <a class="founder" href="${personLink(root.id)}">${avatar(root, 64)}<div><b>${esc(root.name)}</b><span class="muted">${esc(lifespan(root))}</span>
-        <small>${idx.descendants(root.id).size} con cháu trong gia phả</small></div></a>` : ''}
-      ${c.intro ? `<div class="card-h"><h2>Giới thiệu</h2></div><div class="intro">${esc(c.intro).split(/\n+/).map(s => `<p>${s}</p>`).join('')}</div>` : ''}
-      ${!root && !c.intro ? '<p class="muted">Chưa có thông tin giới thiệu.</p>' : ''}
-    </section>
+    ${c.intro ? `<section class="home-intro"><h2>Giới thiệu dòng họ</h2><div class="intro">${esc(c.intro).split(/\n+/).map(s => `<p>${s}</p>`).join('')}</div></section>` : ''}
   </div>`;
   $('#addFirst')?.addEventListener('click', () => openPersonForm(null, { alive: false }, 'Thêm thủy tổ'));
   $('#sheetFirst')?.addEventListener('click', openSheetImport);
   bindPushCTA();
   $('#noticeX')?.addEventListener('click', (e) => { try { localStorage.setItem('gp-notice-seen', e.currentTarget.dataset.id); } catch { /* bỏ qua */ } $('#noticeBox').remove(); });
+}
+
+/** Ba đời đầu theo trục dọc như trang mở đầu cuốn tộc phả: thủy tổ, các con, rồi số đời còn lại */
+function lineageHTML(root) {
+  const idx = ctx.idx, P = store.persons;
+  const spouses = idx.unitSpouses(root.id).map(id => P.get(id)).filter(Boolean);
+  const kids = idx.treeChildren(root.id).map(id => P.get(id)).filter(Boolean);
+  const shown = kids.slice(0, 5);
+  const rest = idx.descendants(root.id).size - kids.length;
+  const gen = (n) => `<span class="ln-gen">Đời ${n}</span>`;
+  return `<nav class="lineage" aria-label="Ba đời đầu của dòng họ">
+    <div class="ln-row ln-root">${gen(1)}
+      <a class="ln-founder" href="${personLink(root.id)}">${avatar(root, 96)}<span><b>${esc(root.name)}</b><small>Thủy tổ · ${esc(lifespan(root))}</small>
+        ${spouses.length ? `<small>${root.gender === 'f' ? 'Chồng' : 'Vợ'}: ${spouses.map(s => esc(s.name)).join(', ')}</small>` : ''}</span></a>
+    </div>
+    ${shown.length ? `<div class="ln-row">${gen(2)}<ul class="ln-kids">${shown.map(k => {
+      const n = idx.descendants(k.id).size;
+      return `<li><a href="${personLink(k.id)}">${avatar(k, 40)}<span><b>${esc(k.name)}</b><small>${esc(lifespan(k))}${n ? ` · ${n} con cháu` : ''}</small></span></a></li>`;
+    }).join('')}${kids.length > shown.length ? `<li class="ln-more">và ${kids.length - shown.length} người con khác</li>` : ''}</ul></div>` : ''}
+    ${rest > 0 ? `<div class="ln-row">${gen(`3–${idx.maxGen}`)}<a class="ln-all" href="#/tree">${rest} người nữa trên cây gia phả ${icon.tree}</a></div>` : ''}
+  </nav>`;
 }
 
 /** Thông báo mới nhất từ quản trị (hiện trên trang chủ trong 14 ngày) */
@@ -178,7 +191,7 @@ function noticeHTML() {
   let seen = ''; try { seen = localStorage.getItem('gp-notice-seen'); } catch { /* bỏ qua */ }
   if (seen === n.id) return '';
   return `<section class="notice-box" id="noticeBox"><div class="gio-ic">${icon.share}</div>
-    <div><small>Thông báo từ dòng họ · ${new Date(n.createdAt).toLocaleDateString('vi-VN')}</small><b>${esc(n.title)}</b>${n.body ? `<p class="muted">${esc(n.body)}</p>` : ''}
+    <div><small>Thông báo từ dòng họ · ${new Date(n.createdAt).toLocaleDateString('vi-VN')}</small><h2 class="notice-title">${esc(n.title)}</h2>${n.body ? `<p class="muted">${esc(n.body)}</p>` : ''}
     ${n.hash && n.hash !== '#/' ? `<a class="btn small" href="${esc(n.hash)}">Xem chi tiết</a>` : ''}</div>
     <button class="icon-btn" id="noticeX" data-id="${esc(n.id)}" aria-label="Ẩn thông báo">${icon.close}</button></section>`;
 }
@@ -198,6 +211,7 @@ function pageTree() {
     .sort((a, b) => (idx.gen.get(a.id) || 0) - (idx.gen.get(b.id) || 0));
   $('#view').innerHTML = `
   <div class="tree-page">
+    <h1 class="sr-only">Cây gia phả</h1>
     <div class="tree-bar">
       <div class="search-wrap"><input id="tSearch" type="search" placeholder="Tìm người trên cây…"><div id="tResults" class="results"></div></div>
       <div class="tree-ctrls">
@@ -207,7 +221,7 @@ function pageTree() {
       <span class="grow"></span>
       ${store.canEdit ? `<button class="btn small" id="tAdd">${icon.plus} Thêm người</button>` : ''}
       <button class="btn small" id="tPng">Xuất ảnh</button>
-      <button class="btn small" id="tPrint">In</button>
+      <button class="btn small hide-sm" id="tPrint">In</button>
       </div>
     </div>
     <div class="tree-host" id="treeHost">
@@ -227,15 +241,15 @@ function pageTree() {
   requestAnimationFrame(() => {
     const { p } = parseHash();
     if (p && tree.centerOn(p)) return;
-    tree.fit();
+    tree.fit(true);
   });
 
   $('#zIn').onclick = () => tree.zoomBy(1.25);
   $('#zOut').onclick = () => tree.zoomBy(0.8);
   $('#zFit').onclick = () => tree.fit();
-  $('#tRoot').onchange = (e) => { treeOpts.rootId = e.target.value; tree.collapsed.clear(); drawTree(true); tree.fit(); };
-  $('#tOutside').onchange = (e) => { treeOpts.hideOutside = e.target.checked; drawTree(true); tree.fit(); };
-  $('#tDepth').onchange = (e) => { tree.collapsed.clear(); drawTree(true); tree.collapseFrom(e.target.value ? +e.target.value : null); drawTree(true); tree.fit(); };
+  $('#tRoot').onchange = (e) => { treeOpts.rootId = e.target.value; tree.collapsed.clear(); drawTree(true); tree.fit(true); };
+  $('#tOutside').onchange = (e) => { treeOpts.hideOutside = e.target.checked; drawTree(true); tree.fit(true); };
+  $('#tDepth').onchange = (e) => { tree.collapsed.clear(); drawTree(true); tree.collapseFrom(e.target.value ? +e.target.value : null); drawTree(true); tree.fit(true); };
   $('#tAdd')?.addEventListener('click', () => openPersonForm(null));
   $('#tPng').onclick = async () => {
     toast('Đang tạo ảnh…');
@@ -328,7 +342,7 @@ function pageGio() {
     <div class="page-h"><h1>Lịch ngày giỗ</h1>
       <button class="btn" id="icsBtn">Thêm vào lịch điện thoại (.ics)</button></div>
     <p class="muted">Hôm nay ${fmtSolar(new Date())} – nhằm ${lunarText({ d: lt.d, m: lt.m, leap: lt.leap })} năm ${canChiYear(lt.y)}.</p>
-    <div class="seg tabs">${[[30, '30 ngày tới'], [60, '2 tháng'], [180, '6 tháng'], [400, 'Cả năm']].map(([v, l]) => `<button class="${gioRange === v ? 'on' : ''}" data-r="${v}">${l}</button>`).join('')}</div>
+    <div class="seg tabs">${[[30, '30 ngày'], [60, '2 tháng'], [180, '6 tháng'], [400, 'Cả năm']].map(([v, l]) => `<button class="${gioRange === v ? 'on' : ''}" data-r="${v}">${l}</button>`).join('')}</div>
     ${list.length ? `<ul class="gio-list">${list.map(gioItem).join('')}</ul>` : `<div class="empty card"><p>Không có ngày giỗ nào trong khoảng này.</p></div>`}
     ${all.length < [...store.persons.values()].filter(p => p.alive === false).length ? `<p class="muted note">Một số người đã mất chưa có ngày giỗ âm lịch – hãy cập nhật để hiện trong lịch.</p>` : ''}
     ${reminderCard()}
