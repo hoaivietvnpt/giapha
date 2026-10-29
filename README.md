@@ -38,12 +38,12 @@ Không cần build, không cần Node — chỉ là HTML/CSS/JS thuần.
 
 ### 1. Bật GitHub Pages
 Repo → **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main` / `(root)` → Save.
-Sau 1–2 phút trang chạy tại `https://hoaivietvnpt.github.io/giapha/` (ở chế độ dùng thử với dữ liệu mẫu).
+Sau 1–2 phút trang chạy tại `https://hoaivietvnpt.github.io/giapha/` (ở chế độ dùng thử với dữ liệu mẫu). Trang hiện dùng tên miền riêng `https://giapha.nhv.me/` (file `CNAME`); GitHub tự chuyển địa chỉ cũ sang tên miền này.
 
 ### 2. Tạo Firebase (miễn phí, gói Spark)
 1. Vào <https://console.firebase.google.com> → **Add project** (VD: `giapha`). Có thể tắt Google Analytics.
 2. **Build → Authentication → Get started → Sign-in method → Google → Enable**.
-3. Authentication → **Settings → Authorized domains → Add domain**: `hoaivietvnpt.github.io`.
+3. Authentication → **Settings → Authorized domains → Add domain**: `giapha.nhv.me` (và `hoaivietvnpt.github.io` nếu vẫn mở bằng địa chỉ cũ).
 4. **Build → Firestore Database → Create database** → chọn vùng `asia-southeast1` → *Start in production mode*.
 5. Firestore → tab **Rules** → dán toàn bộ nội dung file `firestore.rules` → **Publish**.
 6. **Project settings** (bánh răng) → *Your apps* → biểu tượng **Web `</>`** → đặt tên → **Register app** → sao chép khối `firebaseConfig`.
