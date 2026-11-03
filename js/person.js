@@ -76,7 +76,7 @@ export function renderPersonDetail(id) {
         <div class="gio-ic">${icon.incense}</div>
         <div><small>Ngày giỗ (âm lịch)</small><b>${esc(lunarText({ d: p.deathLunar.d, m: p.deathLunar.m }))}</b>
         <div class="muted">Giỗ ${dy ? `lần thứ ${n.lunarYear - dy} ` : ''}vào ${fmtSolar(n.date)} – ${days === 0 ? '<b class="hot">hôm nay</b>' : `còn ${days} ngày`}</div>
-        <button type="button" class="btn small" data-ics>${icon.plus} Thêm ngày giỗ này vào lịch điện thoại</button></div></div>`;
+        <button type="button" class="btn small" data-ics>${icon.plus} Thêm vào lịch điện thoại</button></div></div>`;
     }
   }
 
@@ -95,9 +95,9 @@ export function renderPersonDetail(id) {
     <div class="pd-years">${esc(lifespan(p))}${ageText(p) ? ` · ${esc(ageText(p))}` : ''}</div>
   </div>
   <div class="pd-actions">
+    ${store.canEdit ? `<button class="btn small primary" data-edit>${icon.edit} Sửa</button>` : ''}
     <a class="btn small" href="#/tree?p=${encodeURIComponent(id)}" data-focus>${icon.tree} Xem trên cây</a>
     <button class="btn small" data-share>${icon.share} Chia sẻ</button>
-    ${store.canEdit ? `<button class="btn small primary" data-edit>${icon.edit} Sửa</button>` : ''}
   </div>
   <div class="pd-body">
     <section><h3>Thông tin</h3>

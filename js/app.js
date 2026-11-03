@@ -135,7 +135,7 @@ function pageHome() {
     <div class="hh-text">
       <h1 class="${title.length > 24 ? 'long' : ''}">${esc(title)}</h1>
       <p class="hh-lead">${lead}</p>
-      ${c.origin || c.hall ? `<p class="hero-meta">${c.origin ? `${icon.map} Quê gốc ${esc(c.origin)}` : ''}${c.origin && c.hall ? '<span aria-hidden="true">·</span>' : ''}${c.hall ? esc(c.hall) : ''}</p>` : ''}
+      ${c.origin || c.hall ? `<p class="hero-meta">${c.origin ? `<span>${icon.map} Quê gốc ${esc(c.origin)}</span>` : ''}${c.hall ? `<span>${icon.home} ${esc(c.hall)}</span>` : ''}</p>` : ''}
       <div class="hero-cta"><a class="btn primary" href="#/tree">${icon.tree} Xem cây gia phả</a><a class="btn" href="#/gio">${icon.incense} Lịch ngày giỗ</a></div>
       ${c.motto ? `<p class="hh-motto">${esc(c.motto)}</p>` : ''}
       <p class="hh-today">Hôm nay ${fmtSolar(t)}, nhằm ${lunarText({ d: lt.d, m: lt.m, leap: lt.leap }).replace(/^N/, 'n')} năm ${canChiYear(lt.y)}</p>
@@ -219,7 +219,7 @@ function pageTree() {
       <select id="tDepth" title="Thu gọn"><option value="">Mở tất cả</option>${[1, 2, 3, 4, 5].map(d => `<option value="${d}">Hiện ${d + 1} đời</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="tOutside" ${treeOpts.hideOutside ? 'checked' : ''}> Ẩn cháu ngoại</label>
       <span class="grow"></span>
-      ${store.canEdit ? `<button class="btn small" id="tAdd">${icon.plus} Thêm người</button>` : ''}
+      ${store.canEdit ? `<button class="btn small" id="tAdd">${icon.plus} Thêm<span class="hide-sm"> người</span></button>` : ''}
       <button class="btn small" id="tPng">Xuất ảnh</button>
       <button class="btn small hide-sm" id="tPrint">In</button>
       </div>

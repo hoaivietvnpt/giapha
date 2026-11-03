@@ -37,9 +37,28 @@ async function sanitize(html) {
     }
     return P.sanitize(html || '', { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'target'] });
   } catch {
-    // dự phòng khi không tải được thư viện: chỉ giữ chữ
-    return `<p>${esc(textOf(html))}</p>`;
+    return basicSanitize(html); // dự phòng khi không tải được thư viện
   }
+}
+
+/** Làm sạch đơn giản theo danh sách cho phép (khi không tải được DOMPurify) */
+const OK_TAGS = new Set(['P', 'BR', 'H1', 'H2', 'H3', 'H4', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'SPAN', 'A', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'IMG', 'IFRAME', 'PRE', 'CODE', 'SUB', 'SUP']);
+const OK_ATTR = new Set(['href', 'src', 'alt', 'class', 'style', 'data-list', 'allowfullscreen', 'frameborder']);
+function basicSanitize(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
+  const walk = (el) => {
+    for (const c of [...el.children]) {
+      if (!OK_TAGS.has(c.tagName)) { if (/^(SCRIPT|STYLE|OBJECT|EMBED|FORM|INPUT|TEXTAREA|SELECT|BUTTON|LINK|META|SVG|MATH)$/.test(c.tagName)) c.remove(); else { walk(c); c.replaceWith(...c.childNodes); } continue; }
+      for (const a of [...c.attributes]) if (!OK_ATTR.has(a.name)) c.removeAttribute(a.name);
+      for (const k of ['href', 'src']) { const v = c.getAttribute(k); if (v && !/^(https?:|mailto:|tel:|#|data:image\/(png|jpe?g|gif|webp);)/i.test(v.trim())) c.removeAttribute(k); }
+      if (c.tagName === 'IFRAME' && !/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com|player\.vimeo\.com)\//.test(c.getAttribute('src') || '')) { c.remove(); continue; }
+      if (c.tagName === 'A') { c.setAttribute('target', '_blank'); c.setAttribute('rel', 'noopener'); }
+      if (c.hasAttribute('style')) c.setAttribute('style', (c.getAttribute('style').match(/(^|;)\s*(color|background-color|text-align)\s*:\s*[#\w(),.% -]+/gi) || []).join(''));
+      walk(c);
+    }
+  };
+  const root = doc.body.firstElementChild; walk(root);
+  return root.innerHTML;
 }
 
 /** Thu nhỏ ảnh (giữ tỉ lệ) -> dataURL JPEG */
@@ -68,10 +87,10 @@ export function newsHomeHTML() {
 }
 
 function card(n) {
-  return `<a class="news-card" href="${newsLink(n.id)}">
-    <div class="news-cover">${n.cover ? `<img src="${esc(n.cover)}" alt="" loading="lazy">` : `<span class="news-ph">${icon.tree}</span>`}
-      ${n.pinned ? '<span class="pin">Ghim</span>' : ''}${n.published === false ? '<span class="pin draft">Bản nháp</span>' : ''}</div>
-    <div class="news-body"><small class="muted">${fmtDate(n.createdAt)}</small><h3>${esc(n.title)}</h3><p class="muted">${esc(excerpt(n))}</p></div>
+  const tags = `${n.pinned ? '<span class="pin">Ghim</span>' : ''}${n.published === false ? '<span class="pin draft">Bản nháp</span>' : ''}`;
+  return `<a class="news-card${n.cover ? '' : ' no-cover'}" href="${newsLink(n.id)}">
+    ${n.cover ? `<div class="news-cover"><img src="${esc(n.cover)}" alt="" loading="lazy">${tags}</div>` : ''}
+    <div class="news-body">${n.cover || !tags ? '' : `<div class="news-tags">${tags}</div>`}<small class="muted">${fmtDate(n.createdAt)}</small><h3>${esc(n.title)}</h3><p class="muted">${esc(excerpt(n))}</p></div>
   </a>`;
 }
 
