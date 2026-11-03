@@ -161,8 +161,9 @@ svg:not(.tree-svg) { width: 20px; height: 20px; stroke: currentColor; stroke-wid
 .hh-text h1 { font-size: clamp(44px, 6.6vw, 96px); line-height: 1.02; letter-spacing: -.035em; margin: 0 0 28px; text-wrap: balance; }
 .hh-text h1.long { font-size: clamp(36px, 4.6vw, 64px); line-height: 1.08; }
 .hh-lead { font-size: clamp(18px, 1.55vw, 21px); line-height: 1.5; max-width: 32em; margin: 0 0 12px; }
-.hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; color: var(--muted); }
-.hero-meta svg { color: var(--gold); }
+.hero-meta { display: flex; flex-direction: column; gap: 6px; margin: 0; color: var(--muted); }
+.hero-meta span { display: flex; gap: 8px; align-items: flex-start; }
+.hero-meta svg { color: var(--gold); flex: none; width: 18px; height: 18px; margin-top: .2em; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
 .hh-motto { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--gold); margin: 40px 0 4px; }
 .hh-today { color: var(--muted); font-size: 15px; margin: 0; }
@@ -326,7 +327,7 @@ body:has(.banner:not(.hidden)) .tree-page { height: calc(100dvh - var(--top) - v
 .badge.alive { background: var(--ok-soft); color: var(--ok); }
 .badge.dead { background: var(--dead); color: var(--surface); }
 .badge.soft { background: var(--sunken); color: var(--muted); }
-.pd-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 20px 20px; }
+.pd-actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 4px 12px 20px; }
 .pd-body { padding: 4px 24px 40px; }
 .pd-body section { padding: 16px 0; }
 .pd-body h3 { margin-bottom: 8px; }
@@ -487,7 +488,7 @@ textarea { resize: vertical; }
 .article-content h1, .article-content h2, .article-content h3 { font-family: var(--serif); margin: 1.4em 0 .5em; }
 .article-content img { max-width: 100%; height: auto; border-radius: var(--radius); margin: 8px 0; }
 .article-content iframe, .article-content .ql-video { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: var(--radius); }
-.article-content blockquote { margin: 1em 0; padding: 4px 18px; border-left: 4px solid var(--gold); color: var(--muted); background: var(--surface-2); border-radius: 0 8px 8px 0; }
+.article-content blockquote { margin: 1.4em 0; padding: 0 0 0 20px; border-left: 2px solid var(--gold-line); color: var(--muted); font-family: var(--serif); font-size: 1.12em; font-style: italic; }
 .article-content .ql-align-center { text-align: center; } .article-content .ql-align-right { text-align: right; } .article-content .ql-align-justify { text-align: justify; }
 .article-content .ql-indent-1 { padding-left: 2em; } .article-content .ql-indent-2 { padding-left: 4em; } .article-content .ql-indent-3 { padding-left: 6em; }
 .article-content li[data-list="bullet"] { list-style-type: disc; }
@@ -532,3 +533,22 @@ textarea { resize: vertical; }
   .seg.tabs { display: flex; width: 100%; overflow: visible; }
   .seg.tabs button { flex: 1 1 0; padding: 6px 4px; justify-content: center; }
 }
+
+/* Rà soát giao diện 11/2026 */
+@media (max-width: 640px) {
+  .banner { text-align: left; font-size: 13.5px; }
+  .tree-bar .search-wrap input { max-width: none; width: 100%; }
+  .tree-ctrls .chk { flex: 1 1 auto; min-width: 0; }
+  .tree-ctrls .btn.small { flex: none; padding: 8px 12px; }
+}
+/* Ngăn chi tiết: nút đóng luôn hiện, chỉ phần nội dung cuộn */
+.drawer { overflow: hidden; display: flex; flex-direction: column; }
+.drawer.open { transform: translate(0, 0); }
+.drawer-inner { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pd-head .close { position: fixed; top: 12px; right: 12px; z-index: 3; background: var(--surface); }
+@media (max-width: 640px) { .pd-head .close { top: 20px; } }
+/* Tin không có ảnh bìa: thẻ gọn, không ô trống */
+.news-card.no-cover .news-body { padding-top: 18px; }
+.news-card.no-cover h3 { font-size: 20px; }
+.news-tags { display: flex; gap: 6px; margin-bottom: 2px; }
+.news-tags .pin { position: static; }
